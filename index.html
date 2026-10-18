@@ -59,7 +59,8 @@
   tbody tr:nth-child(even) { background: var(--row-alt); }
   tbody tr:hover { background: var(--hover); }
   tbody tr:last-child td { border-bottom: none; }
-  .hora { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hora, .dur { font-variant-numeric: tabular-nums; }
+  .hora { font-weight: 600; }
   .cat { display: block; color: #8a978f; font-size: 11px; }
   .flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px;
     object-fit: cover; border: 1px solid #cfd9d2; border-radius: 1px; }
@@ -136,6 +137,12 @@ function capillaInfo(f){
     return '<span class="mark yes">✓</span> <span class="yes">' + km + '</span>';
   return '<span class="mark no">✗</span> <span class="no">' + km + '</span>';
 }
+function durHMS(sec){
+  if(sec == null) return '';
+  sec = Math.round(sec);
+  const p = n => String(n).padStart(2, '0');
+  return p(Math.floor(sec/3600)) + ':' + p(Math.floor((sec%3600)/60)) + ':' + p(sec%60);
+}
 function orientInfo(f){
   const pts = f.path || [];
   if(pts.length < 2) return '<span class="na">—</span>';
@@ -165,12 +172,13 @@ function daySection(key, flights){
       '<td>' + flag + pais + '</td>' +
       '<td>' + capillaInfo(f) + '</td>' +
       '<td class="dir">' + orientInfo(f) + '</td>' +
+      '<td class="dur">' + durHMS(f.duration_sec) + '</td>' +
       '</tr>';
   }).join('');
   return '<section class="day"><h2 class="day-title">' + fmtDay(key) + '</h2>' +
     '<table><thead><tr>' +
-    '<th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Tipo de aeronave</th>' +
-    '<th>País</th><th>Capilla del Monte</th><th>Orientación</th>' +
+    '<th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
+    '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></section>';
 }
 
@@ -192,7 +200,7 @@ function render(){
       ' vuelos · últimos ' + DATA.window_days + ' días'
     : 'Sin vuelos';
   document.getElementById('foot').innerHTML = meta +
-    ' · Datos: <a href="https://github.com/magiadelmonte/data-aer">Observatorio Uritorco</a>';
+    ' · <a href="https://www.youtube.com/@MagiaDelMonte">Observatorio Uritorco</a>';
 }
 render();
 </script>
