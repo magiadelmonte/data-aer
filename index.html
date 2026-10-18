@@ -58,6 +58,17 @@
   .day-body { display: none; }
   .day.open > .day-body { display: block; }
   .day-title.toggle:focus-visible { outline: 2px solid #eafff2; outline-offset: -3px; }
+  .day.live { border-color: #a9d8b8; }
+  .day.live .day-title { background: linear-gradient(90deg, #0a6b2e, #23a94f); }
+  .live-dot {
+    width: 9px; height: 9px; border-radius: 50%; margin-left: 10px;
+    background: #eafff2; animation: livepulse 1.6s ease-out infinite;
+  }
+  @keyframes livepulse {
+    0% { box-shadow: 0 0 0 0 rgba(234,255,242,.75); }
+    70% { box-shadow: 0 0 0 9px rgba(234,255,242,0); }
+    100% { box-shadow: 0 0 0 0 rgba(234,255,242,0); }
+  }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 8px 12px; text-align: left; white-space: nowrap; }
   thead th {
@@ -94,7 +105,10 @@
   <div class="subtitle">Registro histórico semanal de vuelos</div>
   <div class="rule"></div>
 </header>
-<main id="days"></main>
+<main>
+  <div id="live"></div>
+  <div id="days"></div>
+</main>
 <footer id="foot"></footer>
 
 <script>
