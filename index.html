@@ -181,31 +181,55 @@ function tipoCell(f){
   return tipo;
 }
 
+const HEAD = '<tr><th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
+  '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th></tr>';
+
+function rowHtml(f, live){
+  const flag = f.country
+    ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
+      '.png" onerror="this.style.display=\'none\'">' : '';
+  const pais = f.country_name_spa || f.country_name_eng || f.country || '';
+  const dur = live
+    ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
+    : durHMS(f.duration_sec);
+  return '<tr>' +
+    '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
+    '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
+    '<td>' + (f.registration || '') + '</td>' +
+    '<td>' + tipoCell(f) + '</td>' +
+    '<td>' + flag + pais + '</td>' +
+    '<td>' + capillaInfo(f) + '</td>' +
+    '<td class="dir">' + orientInfo(f) + '</td>' +
+    '<td class="dur">' + dur + '</td>' +
+    '</tr>';
+}
+
 function daySection(key, flights){
-  const rows = flights.map(f => {
-    const flag = f.country
-      ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
-        '.png" onerror="this.style.display=\'none\'">' : '';
-    const pais = f.country_name_spa || f.country_name_eng || f.country || '';
-    return '<tr>' +
-      '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
-      '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
-      '<td>' + (f.registration || '') + '</td>' +
-      '<td>' + tipoCell(f) + '</td>' +
-      '<td>' + flag + pais + '</td>' +
-      '<td>' + capillaInfo(f) + '</td>' +
-      '<td class="dir">' + orientInfo(f) + '</td>' +
-      '<td class="dur">' + durHMS(f.duration_sec) + '</td>' +
-      '</tr>';
-  }).join('');
+  const rows = flights.map(f => rowHtml(f, false)).join('');
   const isToday = key === DATA.today;
   const secCls = 'day' + (isToday ? ' open' : '');
   const hCls = 'day-title' + (isToday ? '' : ' toggle');
   return '<section class="' + secCls + '"><h2 class="' + hCls + '">' + fmtDay(key) + '</h2>' +
-    '<div class="day-body"><table><thead><tr>' +
-    '<th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
-    '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th>' +
-    '</tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
+    '<tbody>' + rows + '</tbody></table></div></section>';
+}
+
+let liveData = { flights: [] };
+function renderLive(){
+  const box = document.getElementById('live');
+  const flights = (liveData && liveData.flights) || [];
+  if(!flights.length){ box.innerHTML = ''; return; }
+  const rows = flights.map(f => rowHtml(f, true)).join('');
+  box.innerHTML = '<section class="day open live">' +
+    '<h2 class="day-title">Vuelos actuales<span class="live-dot"></span></h2>' +
+    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
+    '<tbody>' + rows + '</tbody></table></div></section>';
+}
+function pollLive(){
+  fetch('r1_live.json?_=' + Date.now(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => { liveData = j || { flights: [] }; renderLive(); })
+    .catch(() => {});
 }
 
 function render(){
@@ -234,6 +258,13 @@ function render(){
     ' · <a href="https://www.youtube.com/@MagiaDelMonte">Observatorio Uritorco</a>';
 }
 render();
+
+// Bloque "Vuelos actuales": recarga r1_live.json cada LIVE_REFRESH_MS (def. 60 s).
+// Se puede ajustar con ?live=<ms> en la URL (mínimo 10 s).
+const _p = new URLSearchParams(location.search);
+const LIVE_REFRESH_MS = Math.max(10000, parseInt(_p.get('live') || '60000', 10) || 60000);
+pollLive();
+setInterval(pollLive, LIVE_REFRESH_MS);
 </script>
 </body>
 </html>
