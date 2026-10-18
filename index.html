@@ -88,6 +88,8 @@
   .yes { color: var(--green); }
   .no { color: #101010; }
   .na { color: #9aa69e; }
+  .empty { margin: 0; padding: 16px; text-align: center; color: var(--muted);
+    font-size: .9rem; letter-spacing: .02em; }
   .dir { font-weight: 600; letter-spacing: .02em; }
   footer { max-width: 1120px; margin: 8px auto 0; text-align: center;
     font-size: 11px; color: var(--muted); letter-spacing: .04em; }
@@ -218,12 +220,13 @@ let liveData = { flights: [] };
 function renderLive(){
   const box = document.getElementById('live');
   const flights = (liveData && liveData.flights) || [];
-  if(!flights.length){ box.innerHTML = ''; return; }
-  const rows = flights.map(f => rowHtml(f, true)).join('');
+  const body = flights.length
+    ? '<table><thead>' + HEAD + '</thead><tbody>' +
+        flights.map(f => rowHtml(f, true)).join('') + '</tbody></table>'
+    : '<p class="empty">No hay vuelos sobrevolando Capilla del Monte en este momento</p>';
   box.innerHTML = '<section class="day open live">' +
     '<h2 class="day-title">Vuelos actuales<span class="live-dot"></span></h2>' +
-    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
-    '<tbody>' + rows + '</tbody></table></div></section>';
+    '<div class="day-body">' + body + '</div></section>';
 }
 function pollLive(){
   fetch('r1_live.json?_=' + Date.now(), {cache: 'no-store'})
