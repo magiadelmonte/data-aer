@@ -109,6 +109,7 @@
 </header>
 <main>
   <div id="live"></div>
+  <div id="reportes"></div>
   <div id="days"></div>
 </main>
 <footer id="foot"></footer>
@@ -209,11 +210,8 @@ function rowHtml(f, live){
 
 function daySection(key, flights, open){
   const rows = flights.map(f => rowHtml(f, false)).join('');
-  const isToday = key === DATA.today;
-  const isOpen = isToday || open;
-  const secCls = 'day' + (isOpen ? ' open' : '');
-  const hCls = 'day-title' + (isToday ? '' : ' toggle');
-  return '<section class="' + secCls + '" data-key="' + key + '"><h2 class="' + hCls + '">' + fmtDay(key) + '</h2>' +
+  const secCls = 'day' + (open ? ' open' : '');
+  return '<section class="' + secCls + '" data-key="' + key + '"><h2 class="day-title toggle">' + fmtDay(key) + '</h2>' +
     '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
     '<tbody>' + rows + '</tbody></table></div></section>';
 }
@@ -237,11 +235,59 @@ function pollLive(){
     .catch(() => {});
 }
 
+// Bloque "Reportes": máximos por categoría (aerolínea/país/tipo/trayecto/horario)
+// de los últimos días. Mismas columnas que los vuelos; la columna "Vuelo" muestra
+// la aerolínea top, etc. Matrícula/Visible/Duración no aplican (—).
+let repData = { tops: {}, n: 0 };
+function topCell(t, fmt){
+  if(!t || t.flights == null) return '<span class="na">—</span>';
+  const label = fmt ? fmt(t) : (t.label || t.key || '');
+  return label + ' <span class="cat">' + t.flights + '</span>';
+}
+function renderReportes(){
+  const box = document.getElementById('reportes');
+  const tops = (repData && repData.tops) || {};
+  const has = tops.airline || tops.country || tops.type || tops.track || tops.hour;
+  const dash = '<span class="na">—</span>';
+  const ctry = tops.country;
+  const paisCell = (ctry && ctry.key)
+    ? '<img class="flag" src="https://flagcdn.com/w40/' + ctry.key +
+      '.png" onerror="this.style.display=\'none\'">' +
+      (ctry.label || ctry.key) + ' <span class="cat">' + ctry.flights + '</span>'
+    : dash;
+  const body = has
+    ? '<tr>' +
+        '<td class="hora">' + topCell(tops.hour) + '</td>' +
+        '<td>' + topCell(tops.airline) + '</td>' +
+        '<td>' + dash + '</td>' +
+        '<td>' + topCell(tops.type) + '</td>' +
+        '<td>' + paisCell + '</td>' +
+        '<td>' + dash + '</td>' +
+        '<td class="dir">' + topCell(tops.track) + '</td>' +
+        '<td class="dur">' + dash + '</td>' +
+      '</tr>'
+    : '<tr><td colspan="8"><span class="na">Sin datos de reportes.</span></td></tr>';
+  const range = repData && repData.date
+    ? ' (' + repData.date.from + '–' + repData.date.to + ')' : '';
+  box.innerHTML = '<section class="day open">' +
+    '<h2 class="day-title">Reportes' + range + '</h2>' +
+    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
+    '<tbody>' + body + '</tbody></table></div></section>';
+}
+function pollReportes(){
+  fetch('reportes.json?_=' + Date.now(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => { repData = j || { tops: {} }; renderReportes(); })
+    .catch(() => {});
+}
+
 function render(){
-  // Conservar los días que el usuario dejó abiertos entre refrescos.
-  const openKeys = new Set();
-  document.querySelectorAll('#days .day.open').forEach(sec => {
-    if(sec.dataset && sec.dataset.key) openKeys.add(sec.dataset.key);
+  // Conservar el estado abierto/cerrado de cada día entre refrescos. El estado
+  // actual del DOM manda; si un día no está en el DOM (primera vez que aparece),
+  // el día de hoy arranca abierto y el resto cerrado.
+  const openStates = {};
+  document.querySelectorAll('#days .day[data-key]').forEach(sec => {
+    openStates[sec.dataset.key] = sec.classList.contains('open');
   });
   const groups = {};
   (DATA.flights || []).forEach(f => {
@@ -253,7 +299,8 @@ function render(){
   days.innerHTML = keys.length
     ? keys.map(k => {
         groups[k].sort((a, b) => (b.ts_start || 0) - (a.ts_start || 0));
-        return daySection(k, groups[k], openKeys.has(k));
+        const open = (k in openStates) ? openStates[k] : (k === DATA.today);
+        return daySection(k, groups[k], open);
       }).join('')
     : '<p class="na" style="text-align:center">Sin vuelos registrados.</p>';
   const meta = DATA.n
@@ -286,12 +333,20 @@ function loadWeek(first){
 loadWeek(true);
 setInterval(() => loadWeek(false), WEEK_REFRESH_MS);
 
+// Bloque "Reportes": se refresca junto con la tabla semanal y con el bloque vivo.
+const _p = new URLSearchParams(location.search);
+const REPORT_REFRESH_MS = Math.max(10000, parseInt(_p.get('report') || '60000', 10) || 60000);
+pollReportes();
+setInterval(pollReportes, REPORT_REFRESH_MS);
+
 // Bloque "Vuelos actuales": recarga r1_live.json cada LIVE_REFRESH_MS (def. 60 s).
 // Se puede ajustar con ?live=<ms> en la URL (mínimo 10 s).
-const _p = new URLSearchParams(location.search);
 const LIVE_REFRESH_MS = Math.max(10000, parseInt(_p.get('live') || '60000', 10) || 60000);
 pollLive();
 setInterval(pollLive, LIVE_REFRESH_MS);
+
+// Bloque "Reportes": se recarga junto con la tabla semanal (misma ventana de días).
+pollReportes();
 </script>
 </body>
 </html>
