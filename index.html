@@ -82,6 +82,7 @@
   .hora, .dur { font-variant-numeric: tabular-nums; }
   .hora { font-weight: 600; }
   .cat { display: block; color: #8a978f; font-size: 11px; }
+  .tot { color: #6b7a71; }
   .flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px;
     object-fit: cover; border: 1px solid #cfd9d2; border-radius: 1px; }
   .mark { font-weight: 700; }
@@ -144,6 +145,7 @@ function hourMin(iso){
 }
 function dayKey(iso){ return (iso || '').slice(0, 10); }
 function fmtDay(key){
+  if(key === DATA.today) return 'HOY';
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
   if(!m) return key;
   const d = new Date(+m[1], +m[2] - 1, +m[3]);
@@ -235,14 +237,17 @@ function pollLive(){
     .catch(() => {});
 }
 
-// Bloque "Reportes": máximos por categoría (aerolínea/país/tipo/trayecto/horario)
-// de los últimos días. Mismas columnas que los vuelos; la columna "Vuelo" muestra
-// la aerolínea top, etc. Matrícula/Visible/Duración no aplican (—).
+// Bloque "Totales semanales": máximos por categoría (horario/aerolínea/tipo/país/
+// trayecto) de los últimos días. Columnas propias (sin Matrícula/Visible/Duración, que
+// no aplican): Hora | Vuelo | Aeronave | País | Trayecto. La cantidad va entre
+// paréntesis al lado del dato.
+const HEAD_REPORTES = '<tr><th>Hora</th><th>Vuelo</th><th>Aeronave</th>' +
+  '<th>País</th><th>Trayecto</th></tr>';
 let repData = { tops: {}, n: 0 };
-function topCell(t, fmt){
+function topCell(t){
   if(!t || t.flights == null) return '<span class="na">—</span>';
-  const label = fmt ? fmt(t) : (t.label || t.key || '');
-  return label + ' <span class="cat">' + t.flights + '</span>';
+  const label = t.label || t.key || '';
+  return label + ' <span class="cat">(' + t.flights + ')</span>';
 }
 function renderReportes(){
   const box = document.getElementById('reportes');
@@ -253,25 +258,20 @@ function renderReportes(){
   const paisCell = (ctry && ctry.key)
     ? '<img class="flag" src="https://flagcdn.com/w40/' + ctry.key +
       '.png" onerror="this.style.display=\'none\'">' +
-      (ctry.label || ctry.key) + ' <span class="cat">' + ctry.flights + '</span>'
+      (ctry.label || ctry.key) + ' <span class="cat">(' + ctry.flights + ')</span>'
     : dash;
   const body = has
     ? '<tr>' +
         '<td class="hora">' + topCell(tops.hour) + '</td>' +
         '<td>' + topCell(tops.airline) + '</td>' +
-        '<td>' + dash + '</td>' +
         '<td>' + topCell(tops.type) + '</td>' +
         '<td>' + paisCell + '</td>' +
-        '<td>' + dash + '</td>' +
         '<td class="dir">' + topCell(tops.track) + '</td>' +
-        '<td class="dur">' + dash + '</td>' +
       '</tr>'
-    : '<tr><td colspan="8"><span class="na">Sin datos de reportes.</span></td></tr>';
-  const range = repData && repData.date
-    ? ' (' + repData.date.from + '–' + repData.date.to + ')' : '';
+    : '<tr><td colspan="5"><span class="na">Sin datos de totales.</span></td></tr>';
   box.innerHTML = '<section class="day open">' +
-    '<h2 class="day-title">Reportes' + range + '</h2>' +
-    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
+    '<h2 class="day-title">Totales semanales</h2>' +
+    '<div class="day-body"><table><thead>' + HEAD_REPORTES + '</thead>' +
     '<tbody>' + body + '</tbody></table></div></section>';
 }
 function pollReportes(){
