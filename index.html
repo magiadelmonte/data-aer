@@ -247,7 +247,7 @@ let repData = { tops: {}, n: 0 };
 function topCell(t){
   if(!t || t.flights == null) return '<span class="na">—</span>';
   const label = t.label || t.key || '';
-  return label + ' <span class="cat">(' + t.flights + ')</span>';
+  return label + ' <span class="tot">(' + t.flights + ')</span>';
 }
 function renderReportes(){
   const box = document.getElementById('reportes');
@@ -258,7 +258,7 @@ function renderReportes(){
   const paisCell = (ctry && ctry.key)
     ? '<img class="flag" src="https://flagcdn.com/w40/' + ctry.key +
       '.png" onerror="this.style.display=\'none\'">' +
-      (ctry.label || ctry.key) + ' <span class="cat">(' + ctry.flights + ')</span>'
+      (ctry.label || ctry.key) + ' <span class="tot">(' + ctry.flights + ')</span>'
     : dash;
   const body = has
     ? '<tr>' +
