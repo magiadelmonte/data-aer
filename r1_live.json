@@ -1,1 +1,1 @@
-{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 0, "flights": []}
+{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 1, "flights": [{"ts_start": 1792948010.3, "ts_start_iso": "2026-10-25T14:06:50-03:00", "callsign": null, "icao24": "e2011f", "registration": null, "type_label": null, "icao_type": null, "ac_type_label": "Sin identificar", "country": "ar", "country_name_spa": "Argentina", "country_name_eng": "Argentina", "duration_sec": 0.0, "path": [{"lat": -31.04961, "lon": -64.52534}]}]}
