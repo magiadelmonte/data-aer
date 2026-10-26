@@ -20,13 +20,18 @@
     background: var(--fondo); color: var(--txt); padding: 0 16px 40px;
     -webkit-font-smoothing: antialiased;
   }
-  header { text-align: center; margin: 0 -16px 24px; padding: 16px 12px 14px; border-bottom: 1px solid var(--borde); }
+  header { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 78px; margin: 0 -16px 24px; padding: 0 12px; border-bottom: 1px solid var(--borde); }
   header h1 {
     margin: 0; font-size: clamp(1.2rem, 4vw, 1.75rem); line-height: 1.2;
     letter-spacing: .14em; font-weight: 700; color: var(--txt); text-transform: uppercase;
   }
   header .subtitle { margin-top: 4px; font-size: clamp(.7rem, 1.6vw, .875rem); letter-spacing: .06em; color: var(--tenue); }
   header .rule { display: none; }
+  #reloj { position: absolute; left: 12px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; text-align: left; line-height: 1.25; }
+  #reloj .fecha, #reloj .hora { font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* Courier New es monoespaciada: fecha (10 car.) y hora (8 car.) ocupan el mismo ancho si hora = fecha x 10/8 */
+  #reloj .fecha { font-size: 22px; }
+  #reloj .hora { font-size: 27.5px; line-height: 1.1; color: inherit; }
   main { max-width: 1120px; margin: 0 auto; }
   .day { background: var(--panel); border: 1px solid var(--borde); margin: 0 0 22px; overflow: hidden; }
   .day-title {
@@ -72,6 +77,9 @@
   footer a { color: var(--acento); }
   @media (max-width: 640px) {
     header h1 { letter-spacing: .08em; }
+    header { padding-left: 112px; }
+    #reloj .fecha { font-size: 16px; }
+    #reloj .hora { font-size: 20px; }
     th, td { padding: 6px 8px; font-size: 12px; }
     .day-body { overflow-x: auto; }
   }
@@ -79,8 +87,9 @@
 </head>
 <body>
 <header>
+  <div id="reloj"></div>
   <h1>Observatorio Uritorco</h1>
-  <div class="subtitle">Registro histórico semanal de vuelos</div>
+  <div class="subtitle">Registro de Aeronaves</div>
   <div class="rule"></div>
 </header>
 <main>
@@ -305,6 +314,13 @@ function loadWeek(first){
       }
     });
 }
+function tickReloj(){
+  const d = new Date();
+  document.getElementById('reloj').innerHTML = '<div class="fecha">' + d.toLocaleDateString('es-AR') +
+    '</div><div class="hora">' + d.toLocaleTimeString('es-AR', {hour12: false}) + '</div>';
+}
+tickReloj(); setInterval(tickReloj, 1000);
+
 loadWeek(true);
 setInterval(() => loadWeek(false), WEEK_REFRESH_MS);
 
