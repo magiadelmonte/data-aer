@@ -1,1 +1,1 @@
-{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 0, "flights": []}
+{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 1, "flights": [{"ts_start": 1792991157.1, "ts_start_iso": "2026-10-26T02:05:57-03:00", "callsign": null, "icao24": "0c216c", "registration": "HP-9921CMP", "type_label": "Boeing 737 MAX 9", "icao_type": "B39M", "ac_type_label": "Vuelo comercial", "country": "pa", "country_name_spa": "Panamá", "country_name_eng": "Panama", "duration_sec": 0.0, "path": [{"lat": -30.92041, "lon": -64.39345}]}]}
