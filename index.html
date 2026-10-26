@@ -87,6 +87,9 @@
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
   .mlab { color: var(--acento); font-size: 11px; letter-spacing: .06em; text-shadow: 0 0 4px #000; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
+  .mlegend { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 10px; letter-spacing: .04em; color: var(--tenue); }
+  .mlegend span { display: inline-flex; align-items: center; gap: 5px; }
+  .mlegend i { width: 14px; height: 5px; display: inline-block; }
   footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
   footer a { color: var(--acento); }
   @media (max-width: 640px) {
@@ -116,6 +119,13 @@
 <div id="modal" aria-hidden="true">
   <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtit">
     <div class="mhead"><span id="mtit"></span><span class="msub" id="msub"></span>
+      <div class="mlegend">
+        <span><i style="background:#c0574d"></i>0-2 km</span>
+        <span><i style="background:#d08a3a"></i>2-5</span>
+        <span><i style="background:#d8c46a"></i>5-8</span>
+        <span><i style="background:#7fb4c8"></i>8-11</span>
+        <span><i style="background:#a48ad6"></i>+11 km</span>
+      </div>
       <button class="mx" id="mx" title="Cerrar (Esc)">✕</button></div>
     <div id="mmap"></div>
   </div>
@@ -488,6 +498,19 @@ function initMapa(){
   return m;
 }
 
+// Bandas de altitud (msnm) para el color del trayecto y la escala del título.
+const ALT_BANDS = [
+  {max: 2000, color: '#c0574d'},
+  {max: 5000, color: '#d08a3a'},
+  {max: 8000, color: '#d8c46a'},
+  {max: 11000, color: '#7fb4c8'},
+  {max: Infinity, color: '#a48ad6'},
+];
+function colorAlt(alt){
+  const b = ALT_BANDS.find(x => alt < x.max);
+  return (b || ALT_BANDS[ALT_BANDS.length - 1]).color;
+}
+
 function iconHTML(key, deg){
   const spec = ICONS[key] || ICONS.unknown;
   const rot = spec.rot ? 'transform:rotate(' + deg.toFixed(0) + 'deg);' : '';
@@ -517,9 +540,25 @@ function abrirTrayecto(k){
   if(!MMAP) MMAP = initMapa();
   MMAP.invalidateSize();
   MTRAJ.clearLayers();
-  const lls = f.path.map(p => [p[0], p[1]]);
-  L.polyline(lls, {color: '#b49650', weight: 2.4, opacity: .95,
-    interactive: false}).addTo(MTRAJ);
+  const lls = f.path.map(p => [p[0], p[1], p[2]]);
+  // Trayectoria coloreada por altitud (tramos por banda).
+  const altOf = i => {
+    for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
+    for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
+    return 0;
+  };
+  let run = [lls[0]], runColor = colorAlt(altOf(0));
+  for(let i = 1; i < lls.length; i++){
+    const c = colorAlt(altOf(i));
+    if(c === runColor){ run.push(lls[i]); continue; }
+    run.push(lls[i]);
+    L.polyline(run, {color: runColor, weight: 2.4, opacity: .95,
+      interactive: false}).addTo(MTRAJ);
+    run = [lls[i]]; runColor = c;
+  }
+  if(run.length > 1)
+    L.polyline(run, {color: runColor, weight: 2.4, opacity: .95,
+      interactive: false}).addTo(MTRAJ);
   L.circleMarker(lls[0], {radius: 4, color: '#4f8a6d', weight: 2, fillColor: '#000',
     fillOpacity: 1, interactive: false}).addTo(MTRAJ);
   const brg = rumboFinal(lls);
