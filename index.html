@@ -459,7 +459,7 @@ function initMapa(){
   m.getPane('labels').style.pointerEvents = 'none';
   m.getPane('labels').style.mixBlendMode = 'screen';
   m.getPane('labels').style.filter =
-    'grayscale(1) invert(1) brightness(1.5) contrast(1.5)';
+    'grayscale(1) invert(1) brightness(2) contrast(2.2)';
   L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
   const c = [lat, lon];
   // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
