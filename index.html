@@ -79,12 +79,12 @@
   /* ---- Modal de trayectoria ---- */
   #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
   #modal.on { display: flex; }
-  .mbox { display: flex; flex-direction: column; width: min(1000px, 100%); max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
+  .mbox { display: flex; flex-direction: column; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
   .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
   .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
   .mx { margin-left: auto; padding: 3px 9px; background: none; border: 1px solid var(--borde-suave); color: var(--tenue); font: inherit; font-size: 14px; line-height: 1.1; cursor: pointer; }
   .mx:hover { color: var(--blanco); border-color: var(--acento); }
-  #mmap { width: 100%; height: min(70vh, 600px); background: var(--fondo-canvas); }
+  #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
   .mlab { color: var(--acento); font-size: 11px; letter-spacing: .06em; text-shadow: 0 0 4px #000; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
   footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
@@ -446,18 +446,18 @@ function destino(lat, lon, brg, km){
 function initMapa(){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
-  const m = L.map('mmap', {zoomControl: true, attributionControl: false, preferCanvas: true});
-  // Fondo físico, oscurecido a los tonos del diseño.
+  const m = L.map('mmap', {zoomControl: false, attributionControl: false, preferCanvas: true});
+  // Fondo físico, muy oscuro.
   L.tileLayer(ESRI_RELIEF, {maxZoom: 13}).addTo(m);
   m.getPane('tilePane').style.filter =
-    'sepia(.4) saturate(.85) brightness(.4) contrast(1.3) hue-rotate(-8deg)';
+    'sepia(.45) saturate(.9) brightness(.22) contrast(1.45) hue-rotate(-8deg)';
   // Nombres de pueblos, rutas, etc.: capa de referencia invertida (texto claro).
   m.createPane('labels');
   m.getPane('labels').style.zIndex = 450;
   m.getPane('labels').style.pointerEvents = 'none';
   L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
-  m.getPane('labels').style.filter =
-    'invert(1) hue-rotate(180deg) brightness(1.2) contrast(.9)';
+  m.getPane('labels').style.filter = 'grayscale(1) brightness(0) invert(1)';
+  m.getPane('labels').style.opacity = '.9';
   const c = [lat, lon];
   // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
   const sector = [c];
@@ -467,10 +467,10 @@ function initMapa(){
     fillOpacity: .3, interactive: false}).addTo(m);
   // Anillos punteados en blanco (25 / 50 / 65 km).
   rings.forEach((r, i) => {
-    L.circle(c, {radius: r * 1000, color: '#fff', weight: i ? 1.1 : 1.5,
+    L.circle(c, {radius: r * 1000, color: '#fff', weight: i ? 0.55 : 0.75,
       opacity: i ? .55 : .8, dashArray: '6,6', fill: false,
       interactive: false}).addTo(m);
-    const ang = 55 * Math.PI / 180;
+    const ang = Math.PI;      // etiqueta de distancia hacia el oeste
     const dLat = (r * 1000 / 6371000) * (180 / Math.PI);
     const dLon = dLat / Math.cos(lat * Math.PI / 180);
     L.marker([lat + dLat * Math.sin(ang), lon + dLon * Math.cos(ang)], {
@@ -482,7 +482,7 @@ function initMapa(){
   L.circleMarker(c, {radius: 3, color: '#fff', weight: 2, fillColor: '#fff',
     fillOpacity: 1, interactive: false}).addTo(m);
   MTRAJ = L.layerGroup().addTo(m);
-  m.fitBounds(L.latLng(lat, lon).toBounds(rings[2] * 2000), {padding: [6, 6]});
+  m.fitBounds(L.latLng(lat, lon).toBounds(rings[2] * 2000), {padding: [22, 22]});
   return m;
 }
 
