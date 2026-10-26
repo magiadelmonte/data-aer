@@ -457,8 +457,9 @@ function initMapa(){
   m.getPane('labels').style.zIndex = 450;
   m.getPane('labels').style.pointerEvents = 'none';
   L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
-  m.getPane('labels').style.filter = 'grayscale(1) brightness(0) invert(1)';
-  m.getPane('labels').style.opacity = '.9';
+  m.getPane('labels').style.filter =
+    'grayscale(1) invert(1) brightness(1.15) contrast(2.4)';
+  m.getPane('labels').style.imageRendering = 'pixelated';
   const c = [lat, lon];
   // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
   const sector = [c];
@@ -468,8 +469,8 @@ function initMapa(){
     fillOpacity: .3, interactive: false}).addTo(m);
   // Anillos punteados en blanco (25 / 50 / 65 km).
   rings.forEach((r, i) => {
-    L.circle(c, {radius: r * 1000, color: '#fff', weight: i ? 0.55 : 0.75,
-      opacity: i ? .55 : .8, dashArray: '6,6', fill: false,
+    L.circle(c, {radius: r * 1000, color: '#fff', weight: i ? 0.28 : 0.38,
+      opacity: i ? .28 : .4, dashArray: '6,6', fill: false,
       interactive: false}).addTo(m);
     const ang = Math.PI;      // etiqueta de distancia hacia el oeste
     const dLat = (r * 1000 / 6371000) * (180 / Math.PI);
