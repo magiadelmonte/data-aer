@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <title>Observatorio Uritorco</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   /* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
   :root {
@@ -73,6 +75,20 @@
   .na { color: var(--tenue); }
   .empty { margin: 0; padding: 16px; text-align: center; color: var(--tenue); font-size: .875rem; }
   .dir { font-weight: 700; letter-spacing: .02em; }
+  tbody tr.has-traj { cursor: pointer; }
+  /* ---- Modal de trayectoria ---- */
+  #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
+  #modal.on { display: flex; }
+  .mbox { display: flex; flex-direction: column; width: min(1000px, 100%); max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
+  .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
+  .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
+  .mx { margin-left: auto; padding: 3px 9px; background: none; border: 1px solid var(--borde-suave); color: var(--tenue); font: inherit; font-size: 14px; line-height: 1.1; cursor: pointer; }
+  .mx:hover { color: var(--blanco); border-color: var(--acento); }
+  #mmap { width: 100%; height: min(70vh, 600px); background: var(--fondo-canvas); }
+  .mfoot { display: flex; flex-wrap: wrap; gap: 16px; padding: 7px 12px; border-top: 1px solid var(--borde-suave); font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
+  .mfoot b { color: var(--txt); }
+  .mlab { color: var(--acento); font-size: 11px; letter-spacing: .06em; text-shadow: 0 0 4px #000; }
+  .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
   footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
   footer a { color: var(--acento); }
   @media (max-width: 640px) {
@@ -174,6 +190,7 @@ function tipoCell(f){
 const HEAD = '<tr><th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
   '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th></tr>';
 
+const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
 function rowHtml(f, live){
   const flag = f.country
     ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
@@ -182,7 +199,7 @@ function rowHtml(f, live){
   const dur = live
     ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
     : durHMS(f.duration_sec);
-  return '<tr>' +
+  return '<tr data-k="' + rowKey(f).replace(/"/g, '&quot;') + '">' +
     '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
     '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
     '<td>' + (f.registration || '') + '</td>' +
