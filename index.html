@@ -194,7 +194,7 @@ function tipoCell(f){
 }
 
 const HEAD = '<tr><th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
-  '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th></tr>';
+  '<th>País</th><th>Visible</th><th>FOV</th><th>Trayecto</th><th>Duración</th></tr>';
 
 const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
 function rowHtml(f, live){
@@ -212,6 +212,7 @@ function rowHtml(f, live){
     '<td>' + tipoCell(f) + '</td>' +
     '<td>' + flag + pais + '</td>' +
     '<td>' + capillaInfo(f) + '</td>' +
+    '<td class="fov">' + (f.fov ? '<span class="mark yes">✓</span>' : '') + '</td>' +
     '<td class="dir">' + orientInfo(f) + '</td>' +
     '<td class="dur">' + dur + '</td>' +
     '</tr>';
