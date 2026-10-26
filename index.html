@@ -371,7 +371,7 @@ let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 const ESRI_RELIEF = ESRI + 'World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}';
-const ESRI_LABELS = ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+const ESRI_LABELS = ESRI + 'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
 const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   airliner:   { color: '#e8e8e8', rot: true,
@@ -446,7 +446,8 @@ function destino(lat, lon, brg, km){
 function initMapa(){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
-  const m = L.map('mmap', {zoomControl: false, attributionControl: false, preferCanvas: true});
+  const m = L.map('mmap', {zoomControl: false, attributionControl: false,
+    preferCanvas: true, zoomSnap: 0.1, zoomDelta: 0.5});
   // Fondo físico, muy oscuro.
   L.tileLayer(ESRI_RELIEF, {maxZoom: 13}).addTo(m);
   m.getPane('tilePane').style.filter =
@@ -482,7 +483,7 @@ function initMapa(){
   L.circleMarker(c, {radius: 3, color: '#fff', weight: 2, fillColor: '#fff',
     fillOpacity: 1, interactive: false}).addTo(m);
   MTRAJ = L.layerGroup().addTo(m);
-  m.fitBounds(L.latLng(lat, lon).toBounds(rings[2] * 2000), {padding: [22, 22]});
+  m.fitBounds(L.latLng(lat, lon).toBounds(rings[2] * 2000), {padding: [18, 18]});
   return m;
 }
 
