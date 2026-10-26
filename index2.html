@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Observatorio Uritorco</title>
+<style>
+  /* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
+  :root {
+    --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #05070a; --panel: #05070a;
+    --borde: rgba(180,150,80,.45); --borde-suave: rgba(180,150,80,.25);
+    --acento: #b49650; --ok: #4f8a6d; --tenue: #9a917c; --blanco: #fff; --no: #c0574d;
+    --fila-alt: rgba(180,150,80,.05); --hover: rgba(180,150,80,.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Courier New', ui-monospace, Menlo, Consolas, monospace;
+    background: var(--fondo); color: var(--txt); padding: 0 16px 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+  header { text-align: center; margin: 0 -16px 24px; padding: 16px 12px 14px; border-bottom: 1px solid var(--borde); }
+  header h1 {
+    margin: 0; font-size: clamp(1.2rem, 4vw, 1.75rem); line-height: 1.2;
+    letter-spacing: .14em; font-weight: 700; color: var(--txt); text-transform: uppercase;
+  }
+  header .subtitle { margin-top: 4px; font-size: clamp(.7rem, 1.6vw, .875rem); letter-spacing: .06em; color: var(--tenue); }
+  header .rule { display: none; }
+  main { max-width: 1120px; margin: 0 auto; }
+  .day { background: var(--panel); border: 1px solid var(--borde); margin: 0 0 22px; overflow: hidden; }
+  .day-title {
+    display: flex; align-items: center; margin: 0; padding: 8px 12px;
+    border-bottom: 1px solid var(--borde); color: var(--blanco);
+    font-size: .875rem; font-weight: 700; letter-spacing: .04em;
+  }
+  .day-title.toggle { cursor: pointer; user-select: none; }
+  .day-title.toggle:hover { background: var(--hover); }
+  .day-title.toggle::after { content: '\25B8'; margin-left: auto; color: var(--acento); font-size: 1.3rem; line-height: 1; }
+  .day.open > .day-title.toggle::after { content: '\25BE'; }
+  .day:not(.open) > .day-title { border-bottom: 0; }
+  .day-body { display: none; }
+  .day.open > .day-body { display: block; }
+  .day-title.toggle:focus-visible { outline: 1px solid var(--acento); outline-offset: -3px; }
+  .day.live { border-color: var(--ok); }
+  .day.live .day-title { color: var(--ok); border-bottom-color: var(--ok); }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: 10px; background: var(--ok); animation: livepulse 1.6s ease-out infinite; }
+  @keyframes livepulse {
+    0% { box-shadow: 0 0 0 0 rgba(79,138,109,.75); }
+    70% { box-shadow: 0 0 0 9px rgba(79,138,109,0); }
+    100% { box-shadow: 0 0 0 0 rgba(79,138,109,0); }
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+  th, td { padding: 6px 12px; text-align: left; white-space: nowrap; }
+  thead th { color: var(--tenue); font-size: 11px; font-weight: 400; letter-spacing: .09em; text-transform: uppercase; border-bottom: 1px solid var(--borde-suave); }
+  tbody td { border-bottom: 1px solid var(--borde-suave); }
+  tbody tr:nth-child(even) { background: var(--fila-alt); }
+  tbody tr:hover { background: var(--hover); }
+  tbody tr:last-child td { border-bottom: none; }
+  .hora, .dur { font-variant-numeric: tabular-nums; }
+  .hora { font-weight: 700; color: var(--blanco); }
+  .cat { display: block; color: var(--tenue); font-size: 11px; }
+  .tot { color: var(--tenue); }
+  .flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px; object-fit: cover; border: 1px solid var(--borde); }
+  .mark { font-weight: 700; }
+  .yes { color: var(--ok); }
+  .no { color: var(--no); }
+  .na { color: var(--tenue); }
+  .empty { margin: 0; padding: 16px; text-align: center; color: var(--tenue); font-size: .875rem; }
+  .dir { font-weight: 700; letter-spacing: .02em; }
+  footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
+  footer a { color: var(--acento); }
+  @media (max-width: 640px) {
+    header h1 { letter-spacing: .08em; }
+    th, td { padding: 6px 8px; font-size: 12px; }
+    .day-body { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Observatorio Uritorco</h1>
+  <div class="subtitle">Registro histórico semanal de vuelos</div>
+  <div class="rule"></div>
+</header>
+<main>
+  <div id="live"></div>
+  <div id="reportes"></div>
+  <div id="days"></div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+// El index.html es siempre el mismo: los datos se cargan de semana.json.
+let DATA = { flights: [], n: 0, window_days: 5, updated_iso: '', today: null };
+
+const WEEKDAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
+  'Septiembre','Octubre','Noviembre','Diciembre'];
+const CARD_ABREV = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+
+const toRad = d => d * Math.PI / 180;
+const cardAbrev = deg => (deg == null ? null
+  : CARD_ABREV[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16]);
+
+function bearing(lat1, lon1, lat2, lon2){
+  const f1 = toRad(lat1), f2 = toRad(lat2), dl = toRad(lon2 - lon1);
+  const y = Math.sin(dl) * Math.cos(f2);
+  const x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+function distKm(lat1, lon1, lat2, lon2){
+  const R = 6371, dφ = toRad(lat2 - lat1), dλ = toRad(lon2 - lon1);
+  const a = Math.sin(dφ/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dλ/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function hourMin(iso){
+  const m = /T(\d{2}):(\d{2})/.exec(iso || '');
+  return m ? m[1] + ':' + m[2] : '';
+}
+function dayKey(iso){ return (iso || '').slice(0, 10); }
+function fmtDay(key){
+  if(key === DATA.today) return 'HOY';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if(!m) return key;
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  return WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' de ' +
+         MONTHS[d.getMonth()] + ' de ' + d.getFullYear();
+}
+function capillaInfo(f){
+  const pts = f.path || [];
+  if(pts.length === 0 || DATA.center_lat == null)
+    return '<span class="na">—</span>';
+  let best = Infinity;
+  for(const p of pts){
+    const d = distKm(p.lat, p.lon, DATA.center_lat, DATA.center_lon);
+    if(d < best) best = d;
+  }
+  const km = best.toFixed(1) + ' km';
+  if(best <= DATA.r1_km)
+    return '<span class="mark yes">✓</span> <span class="yes">' + km + '</span>';
+  return '<span class="mark no">✗</span> <span class="no">' + km + '</span>';
+}
+function durHMS(sec){
+  if(sec == null) return '';
+  sec = Math.round(sec);
+  const p = n => String(n).padStart(2, '0');
+  return p(Math.floor(sec/3600)) + ':' + p(Math.floor((sec%3600)/60)) + ':' + p(sec%60);
+}
+function orientInfo(f){
+  const pts = f.path || [];
+  if(pts.length < 2) return '<span class="na">—</span>';
+  const a = pts[0], b = pts[pts.length - 1];
+  const brg = bearing(a.lat, a.lon, b.lat, b.lon);
+  return cardAbrev((brg + 180) % 360) + '→' + cardAbrev(brg);
+}
+function tipoCell(f){
+  let tipo = f.type_label || f.icao_type || '';
+  let cat = f.ac_type_label || '';
+  if(!tipo){ tipo = cat; cat = ''; }
+  if(cat) tipo += '<span class="cat">' + cat + '</span>';
+  return tipo;
+}
+
+const HEAD = '<tr><th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
+  '<th>País</th><th>Visible</th><th>Trayecto</th><th>Duración</th></tr>';
+
+function rowHtml(f, live){
+  const flag = f.country
+    ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
+      '.png" onerror="this.style.display=\'none\'">' : '';
+  const pais = f.country_name_spa || f.country_name_eng || f.country || '';
+  const dur = live
+    ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
+    : durHMS(f.duration_sec);
+  return '<tr>' +
+    '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
+    '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
+    '<td>' + (f.registration || '') + '</td>' +
+    '<td>' + tipoCell(f) + '</td>' +
+    '<td>' + flag + pais + '</td>' +
+    '<td>' + capillaInfo(f) + '</td>' +
+    '<td class="dir">' + orientInfo(f) + '</td>' +
+    '<td class="dur">' + dur + '</td>' +
+    '</tr>';
+}
+
+function daySection(key, flights, open){
+  const rows = flights.map(f => rowHtml(f, false)).join('');
+  const secCls = 'day' + (open ? ' open' : '');
+  return '<section class="' + secCls + '" data-key="' + key + '"><h2 class="day-title toggle">' + fmtDay(key) + '</h2>' +
+    '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
+    '<tbody>' + rows + '</tbody></table></div></section>';
+}
+
+let liveData = { flights: [] };
+function renderLive(){
+  const box = document.getElementById('live');
+  const flights = (liveData && liveData.flights) || [];
+  const body = flights.length
+    ? '<table><thead>' + HEAD + '</thead><tbody>' +
+        flights.map(f => rowHtml(f, true)).join('') + '</tbody></table>'
+    : '<p class="empty">No hay vuelos sobrevolando Capilla del Monte en este momento</p>';
+  box.innerHTML = '<section class="day open live">' +
+    '<h2 class="day-title">Vuelos actuales<span class="live-dot"></span></h2>' +
+    '<div class="day-body">' + body + '</div></section>';
+}
+function pollLive(){
+  fetch('r1_live.json?_=' + Date.now(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => { liveData = j || { flights: [] }; renderLive(); })
+    .catch(() => {});
+}
+
+// Bloque "Totales semanales": máximos por categoría (horario/aerolínea/tipo/país/
+// trayecto) de los últimos días. Columnas propias (sin Matrícula/Visible/Duración, que
+// no aplican): Hora | Vuelo | Aeronave | País | Trayecto. La cantidad va entre
+// paréntesis al lado del dato.
+const HEAD_REPORTES = '<tr><th>Hora</th><th>Vuelo</th><th>Aeronave</th>' +
+  '<th>País</th><th>Trayecto</th></tr>';
+let repData = { tops: {}, n: 0 };
+function topCell(t){
+  if(!t || t.flights == null) return '<span class="na">—</span>';
+  const label = t.label || t.key || '';
+  return label + ' <span class="tot">(' + t.flights + ')</span>';
+}
+function renderReportes(){
+  const box = document.getElementById('reportes');
+  const tops = (repData && repData.tops) || {};
+  const has = tops.airline || tops.country || tops.type || tops.track || tops.hour;
+  const dash = '<span class="na">—</span>';
+  const ctry = tops.country;
+  const paisCell = (ctry && ctry.key)
+    ? '<img class="flag" src="https://flagcdn.com/w40/' + ctry.key +
+      '.png" onerror="this.style.display=\'none\'">' +
+      (ctry.label || ctry.key) + ' <span class="tot">(' + ctry.flights + ')</span>'
+    : dash;
+  const body = has
+    ? '<tr>' +
+        '<td class="hora">' + topCell(tops.hour) + '</td>' +
+        '<td>' + topCell(tops.airline) + '</td>' +
+        '<td>' + topCell(tops.type) + '</td>' +
+        '<td>' + paisCell + '</td>' +
+        '<td class="dir">' + topCell(tops.track) + '</td>' +
+      '</tr>'
+    : '<tr><td colspan="5"><span class="na">Sin datos de totales.</span></td></tr>';
+  box.innerHTML = '<section class="day open">' +
+    '<h2 class="day-title">Totales semanales</h2>' +
+    '<div class="day-body"><table><thead>' + HEAD_REPORTES + '</thead>' +
+    '<tbody>' + body + '</tbody></table></div></section>';
+}
+function pollReportes(){
+  fetch('reportes.json?_=' + Date.now(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => { repData = j || { tops: {} }; renderReportes(); })
+    .catch(() => {});
+}
+
+function render(){
+  // Conservar el estado abierto/cerrado de cada día entre refrescos. El estado
+  // actual del DOM manda; si un día no está en el DOM (primera vez que aparece),
+  // el día de hoy arranca abierto y el resto cerrado.
+  const openStates = {};
+  document.querySelectorAll('#days .day[data-key]').forEach(sec => {
+    openStates[sec.dataset.key] = sec.classList.contains('open');
+  });
+  const groups = {};
+  (DATA.flights || []).forEach(f => {
+    const k = dayKey(f.ts_start_iso);
+    (groups[k] = groups[k] || []).push(f);
+  });
+  const keys = Object.keys(groups).sort().reverse();   // día más reciente primero
+  const days = document.getElementById('days');
+  days.innerHTML = keys.length
+    ? keys.map(k => {
+        groups[k].sort((a, b) => (b.ts_start || 0) - (a.ts_start || 0));
+        const open = (k in openStates) ? openStates[k] : (k === DATA.today);
+        return daySection(k, groups[k], open);
+      }).join('')
+    : '<p class="na" style="text-align:center">Sin vuelos registrados.</p>';
+  const meta = DATA.n
+    ? 'Actualizado: ' + DATA.updated_iso + ' · ' + DATA.n +
+      ' vuelos · últimos ' + DATA.window_days + ' días'
+    : 'Sin vuelos';
+  document.getElementById('foot').innerHTML = meta +
+    ' · <a href="https://www.youtube.com/@MagiaDelMonte">Observatorio Uritorco</a>';
+}
+
+document.getElementById('days').addEventListener('click', e => {
+  const t = e.target.closest('.day-title.toggle');
+  if(t) t.parentElement.classList.toggle('open');
+});
+
+// La tabla semanal se recarga de semana.json (index.html no se regenera).
+const WEEK_REFRESH_MS = 300000;   // 5 min
+function loadWeek(first){
+  fetch('semana.json?_=' + Date.now(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => { DATA = j || { flights: [] }; render(); })
+    .catch(() => {
+      if(first){
+        document.getElementById('days').innerHTML =
+          '<p class="na" style="text-align:center">No se pudieron cargar los datos (semana.json).</p>';
+        document.getElementById('foot').textContent = '';
+      }
+    });
+}
+loadWeek(true);
+setInterval(() => loadWeek(false), WEEK_REFRESH_MS);
+
+// Bloque "Reportes": se refresca junto con la tabla semanal y con el bloque vivo.
+const _p = new URLSearchParams(location.search);
+const REPORT_REFRESH_MS = Math.max(10000, parseInt(_p.get('report') || '60000', 10) || 60000);
+pollReportes();
+setInterval(pollReportes, REPORT_REFRESH_MS);
+
+// Bloque "Vuelos actuales": recarga r1_live.json cada LIVE_REFRESH_MS (def. 60 s).
+// Se puede ajustar con ?live=<ms> en la URL (mínimo 10 s).
+const LIVE_REFRESH_MS = Math.max(10000, parseInt(_p.get('live') || '60000', 10) || 60000);
+pollLive();
+setInterval(pollLive, LIVE_REFRESH_MS);
+
+// Bloque "Reportes": se recarga junto con la tabla semanal (misma ventana de días).
+pollReportes();
+</script>
+</body>
+</html>
