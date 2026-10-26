@@ -449,18 +449,17 @@ function initMapa(){
   const rings = TRAJ.rings_km || [25, 50, 65];
   const m = L.map('mmap', {zoomControl: false, attributionControl: false,
     preferCanvas: true, zoomSnap: 0.1, zoomDelta: 0.5});
-  // Mapa oscuro nativo + relieve como textura (sin filtros de color).
-  L.tileLayer(ESRI_DARK, {maxZoom: 13}).addTo(m);
-  m.createPane('relief');
-  m.getPane('relief').style.zIndex = 250;
-  m.getPane('relief').style.pointerEvents = 'none';
-  m.getPane('relief').style.mixBlendMode = 'soft-light';
-  m.getPane('relief').style.opacity = '.75';
-  L.tileLayer(ESRI_RELIEF, {pane: 'relief', maxZoom: 13}).addTo(m);
-  // Nombres de pueblos y rutas: capa de referencia del mapa oscuro (texto claro).
+  // Fondo: mapa físico oscurecido.
+  L.tileLayer(ESRI_RELIEF, {maxZoom: 13}).addTo(m);
+  m.getPane('tilePane').style.filter =
+    'sepia(.4) saturate(.85) brightness(.32) contrast(1.35) hue-rotate(-8deg)';
+  // Etiquetas: texto claro sin halo (el halo invertido se descarta con "screen").
   m.createPane('labels');
   m.getPane('labels').style.zIndex = 450;
   m.getPane('labels').style.pointerEvents = 'none';
+  m.getPane('labels').style.mixBlendMode = 'screen';
+  m.getPane('labels').style.filter =
+    'grayscale(1) invert(1) brightness(1.5) contrast(1.5)';
   L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
   const c = [lat, lon];
   // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
