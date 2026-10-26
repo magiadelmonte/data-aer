@@ -457,8 +457,7 @@ function initMapa(){
   m.getPane('labels').style.zIndex = 450;
   m.getPane('labels').style.pointerEvents = 'none';
   L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
-  m.getPane('labels').style.filter =
-    'grayscale(1) invert(1) brightness(1.05) contrast(2.6)';
+  m.getPane('labels').style.filter = 'brightness(0) invert(1) contrast(3)';
   const c = [lat, lon];
   // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
   const sector = [c];
