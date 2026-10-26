@@ -1,1 +1,1 @@
-{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 0, "flights": []}
+{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "n": 1, "flights": [{"ts_start": 1792998834.0, "ts_start_iso": "2026-10-26T04:13:54-03:00", "callsign": "LPE2385", "icao24": "e8046a", "registration": "CC-BLE", "type_label": "Airbus A320", "icao_type": "A320", "ac_type_label": "Vuelo comercial", "country": "cl", "country_name_spa": "Chile", "country_name_eng": "Chile", "duration_sec": 4.7, "path": [{"lat": -31.02343, "lon": -64.36884}, {"lat": -31.01771, "lon": -64.37296}]}]}
