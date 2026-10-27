@@ -604,12 +604,15 @@ function activarHover(){
 }
 
 function iconHTML(key, deg){
-  const spec = ICONS[key] || ICONS.unknown;
+  // Un SVG de img/aer_icons/ por categoría, pintado como máscara: el archivo es
+  // negro y acá se le da el color (y el giro al rumbo, si el ícono tiene nariz).
+  const name = ICONS[key] ? key : 'unknown';
+  const spec = ICONS[name];
   const rot = spec.rot ? 'transform:rotate(' + deg.toFixed(0) + 'deg);' : '';
-  return '<div class="mplane" style="' + rot + '"><svg viewBox="0 0 24 24" ' +
-    'width="30" height="30" fill="' + spec.color + '" color="' + spec.color + '" ' +
-    'stroke="#000" stroke-width=".55" stroke-linejoin="round">' + spec.svg +
-    '</svg></div>';
+  const url = 'url("' + ICON_DIR + '/' + name + '.svg")';
+  return '<div class="mplane" style="' + rot + '"><span class="mico" style="' +
+    '-webkit-mask-image:' + url + ';mask-image:' + url +
+    ';background:' + spec.color + '"></span></div>';
 }
 
 function rumboFinal(lls){

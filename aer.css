@@ -107,6 +107,10 @@ tbody tr:last-child td { border-bottom: none; }
 .mfoot a { color: var(--acento); text-decoration: none; }
 .mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(5,7,10,.92); border: 1px solid var(--borde); color: #fff; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
 .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
+.mico { display: block; width: 30px; height: 30px;
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center; }
 footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
 footer a { color: var(--acento); }
 @media (max-width: 640px) {
