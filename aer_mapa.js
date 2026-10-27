@@ -511,8 +511,9 @@ function activarHoverFov(cv){
   cv.addEventListener('mousemove', e => {
     if(!MFOV_PTS){ MFOV_TIP.style.display = 'none'; return; }
     let best = null;
+    const W = cv.clientWidth, H = cv.clientHeight;
     MFOV_PTS.forEach(p => {
-      if(p.x == null) return;
+      if(p.x == null || p.x < 0 || p.x > W || p.y < 0 || p.y > H) return;
       const d = Math.hypot(e.offsetX - p.x, e.offsetY - p.y);
       if(!best || d < best.d) best = {d: d, x: p.x, y: p.y, alt: p.alt, el: p.el};
     });
