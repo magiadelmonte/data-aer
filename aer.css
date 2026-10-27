@@ -78,7 +78,8 @@ tbody tr:last-child td { border-bottom: none; }
 #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
 #modal.on { display: flex; }
 .mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
-.mbox.fov { width: min(96vw, 1280px, 170vh); aspect-ratio: 16 / 9; }
+.mbox.fov { width: min(96vw, 1280px, calc((96vh - 48px) * 1.774));
+  aspect-ratio: auto; height: auto; }
 .mbox.fov .mfoot { display: none; }
 .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead #mtit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }

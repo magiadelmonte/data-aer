@@ -16,7 +16,7 @@ const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se conside
 // Los halos de las etiquetas quedan oscuros para no perder contraste.
 const ACLARAR = 0.02;
 const MAP_BG = '#05070a';   // mismo fondo que data-sat (negro)
-const CELESTE = '#8fb0d8';  // líneas, ríos, rutas y nombres: celeste de las constelaciones de noche
+const CELESTE = 'rgba(143,176,216,.5)';   // celeste de constelaciones, al 50%
 function parseColor(v){
   let m = /^#([0-9a-f]{3,8})$/i.exec(v);
   if(m){
@@ -433,9 +433,9 @@ function dibujarFov(f){
   const F = TRAJ.fov;
   const dispW = caja.clientWidth, dispH = caja.clientHeight;
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
-  // Lienzo con la relación exacta del encuadre (tan H / tan V), centrado en la caja.
+  // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  const W = Math.min(dispW, dispH * ratio), H = W / ratio;
+  const W = dispW, H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
