@@ -471,8 +471,9 @@ function initMapa(){
     .then(st => {
       st.sources.esri = {type: 'vector', tiles: [NOVA_TILES],
         minzoom: 0, maxzoom: 16};
+      const listo = new Promise(res => m.once('style.load', res));
       m.setStyle(st);
-      return new Promise(res => m.once('style.load', res));
+      return listo;
     })
     .then(() => {
       // Porción de pizza (13°-65° de azimut) hasta el radio mayor.
