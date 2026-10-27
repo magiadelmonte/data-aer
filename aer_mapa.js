@@ -170,15 +170,8 @@ function initMapa(){
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
         paint: {'fill-color': '#fff', 'fill-opacity': .26}});
-      // Radio oeste (270°): es el renglón de las etiquetas de distancia. Paralelo al radio,
-      // cada "25 / 50 / 65 km" arranca en su anillo y corre hacia adentro, apoyado sobre la línea.
-      const finRad = destino(lat, lon, 270, rings[2]);
-      m.addSource('radio', {type: 'geojson', data: {type: 'Feature',
-        geometry: {type: 'LineString', coordinates: [[lon, lat], [finRad[1], finRad[0]]]}}});
-      m.addLayer({id: 'radio', type: 'line', source: 'radio',
-        layout: {'line-cap': 'butt'},
-        paint: {'line-color': '#fff', 'line-opacity': .18, 'line-width': .32, 'line-dasharray': [16, 16]}});
-      // Anillos punteados (25 / 50 / 65 km) con su distancia sobre el radio oeste.
+      // Anillos punteados (25 / 50 / 65 km). La distancia de cada uno va apoyada en su propio
+      // anillo (paralela a la línea, del lado de adentro), en el norte, donde el texto queda horizontal.
       rings.forEach((r, i) => {
         const pts = [];
         for(let a = 0; a <= 360; a += 2){
@@ -191,12 +184,12 @@ function initMapa(){
           layout: {'line-cap': 'butt', 'line-join': 'round'},
           paint: {'line-color': '#fff', 'line-opacity': i ? .23 : .32,
             'line-width': i ? .42 : .57, 'line-dasharray': [16, 16]}});
-        const p = destino(lat, lon, 270, r);
+        const p = destino(lat, lon, 0, r);
         const el = document.createElement('span');
         el.className = 'mlab mlab_km';
         el.textContent = r + ' km';
-        // anchor left: el texto sale del anillo hacia el centro; offset: 4 px adentro y 7 px arriba de la línea.
-        new maplibregl.Marker({element: el, anchor: 'left', offset: [4, -7]})
+        // Apoyada en el anillo: el anillo es el renglón y el texto queda 7 px adentro.
+        new maplibregl.Marker({element: el, anchor: 'center', offset: [0, 7]})
           .setLngLat([p[1], p[0]]).addTo(m);
       });
       // 8 puntos cardinales en el anillo exterior, blancos y apenas por fuera de la línea.
