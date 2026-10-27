@@ -578,7 +578,7 @@ function initMapa(){
       m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-        paint: {'fill-color': '#fff', 'fill-opacity': .2}});
+        paint: {'fill-color': '#fff', 'fill-opacity': .08}});
       // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
       rings.forEach((r, i) => {
         const pts = [];
