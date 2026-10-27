@@ -12,12 +12,14 @@ por `fetch` desde dos JSON, que son lo único que se actualiza:
 
 La página se refresca sola: `r1_live.json` cada 60 s y `semana.json` cada 5 min.
 
-Columnas de la tabla:
+Columnas de la tabla: **Hora · Duración · Vuelo · Aeronave · País · Distancia ·
+Trayecto · FOV · Mapas**.
 
-- **Visible**: ✓ si el recorrido del vuelo entró al radio R1 (≤ 25 km del centro);
-  ✗ con la distancia mínima al centro si no.
+- **Distancia**: mínima del recorrido al centro (en verde si entró a R1, ≤ 25 km).
 - **Trayecto**: orientación abreviada de entrada → salida (p. ej. `NO→SSE`).
-- **Duración**: tiempo registrado entre la detección y el cierre del vuelo.
+- **FOV**: ✓ si el vuelo entró al encuadre de la cámara (azimut + altura + alcance).
+- **Mapas**: **SAT** abre el mapa del trayecto; **FOV** (solo si el vuelo entró al
+  sector azimutal de la cámara, aunque no se haya visto) abre el mapa del sector.
 
 Datos generados automáticamente desde el servidor del observatorio (snapshot; no
 es en vivo). Página servida por **GitHub Pages**.
