@@ -4,6 +4,7 @@
 // ============================================================
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
+const TRAJ_DIAS = {};                  // 'yyyy-mm-dd' -> payload del día (trayectos_AAAAMMDD.json)
 // Basemap: CARTO Dark Matter (vectorial, plano, con etiquetas; gratis con atribución)
 // Mapa plano y oscuro: sin relieve.
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -89,14 +90,38 @@ let MTRAJ_IDS = [], MPLANE = null;
 function trajOf(k){                      // vuelo cerrado (trayectos.json) o en curso (r1_live.json)
   return TKEY[k] || (typeof LIVE_TKEY !== 'undefined' && LIVE_TKEY[k]) || null;
 }
+const diaDeClave = k => dayKey(String(k).split('|')[1] || '');   // fecha del vuelo
+
+function cargarDia(day, force){
+  // Baja el JSON del día (una vez por sesión; `force` refresca el día en curso).
+  if(!day) return Promise.resolve(null);
+  if(!force && TRAJ_DIAS[day]) return Promise.resolve(TRAJ_DIAS[day]);
+  return fetch('trayectos_' + day.replace(/-/g, '') + '.json?_=' + Date.now(),
+               {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(j => {
+      j = j || {flights: []};
+      Object.keys(TKEY).forEach(k => { if(diaDeClave(k) === day) delete TKEY[k]; });
+      (j.flights || []).forEach(f => { TKEY[f.k] = f; });
+      TRAJ_DIAS[day] = j;
+      marcarFilas();
+      return j;
+    });
+}
+
+function cargarHoy(force){
+  const day = (typeof DATA !== 'undefined' && DATA.today) ||
+    new Date().toLocaleDateString('en-CA');
+  return cargarDia(day, force).catch(() => {});
+}
+
 function marcarFilas(){
   document.querySelectorAll('.mlink[data-k]').forEach(a => {
-    const has = !!trajOf(a.dataset.k);
-    a.classList.toggle('off', !has);
-    a.title = has
-      ? (a.dataset.modo === 'fov' ? 'Mapa del sector FOV' : 'Mapa del trayecto')
-      : 'Sin trayecto disponible';
+    a.title = a.dataset.modo === 'fov' ? 'Mapa del sector FOV' : 'Mapa del trayecto';
   });
+  // El día en curso se precarga (es el que se abre y el que cambia); los demás
+  // días de la ventana se bajan recién al abrir su mapa.
+  cargarHoy(false);
 }
 
 function destino(lat, lon, brg, km){
@@ -671,7 +696,18 @@ function tituloModal(f, modo){
 let MODO = 'sat';
 function abrirTrayecto(k, modo){
   const f = trajOf(k);
-  if(!f || TRAJ.center_lat == null) return;
+  if(f){ mostrarTrayecto(f, modo); return; }
+  // Día todavía no bajado: se pide su JSON y se abre cuando llega.
+  cargarDia(diaDeClave(k)).then(() => {
+    const g = trajOf(k);
+    if(g) mostrarTrayecto(g, modo);
+  }).catch(() => {});
+}
+
+function mostrarTrayecto(f, modo){
+  const day = diaDeClave(f.k);
+  if(TRAJ_DIAS[day]) TRAJ = TRAJ_DIAS[day];
+  if(TRAJ.center_lat == null) return;
   MODO = modo === 'fov' ? 'fov' : 'sat';
   tituloModal(f, MODO);
   document.querySelector('#modal .mbox').classList.toggle('fov', MODO === 'fov');
@@ -713,16 +749,6 @@ document.addEventListener('click', e => {
   abrirTrayecto(a.dataset.k, a.dataset.modo);
 });
 
-function loadTrayectos(){
-  fetch('trayectos.json?_=' + Date.now(), {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(j => {
-      TRAJ = j || {flights: []};
-      Object.keys(TKEY).forEach(k => delete TKEY[k]);
-      (TRAJ.flights || []).forEach(f => { TKEY[f.k] = f; });
-      marcarFilas();
-    })
-    .catch(() => {});
-}
-loadTrayectos();
-setInterval(loadTrayectos, WEEK_REFRESH_MS);
+// El día en curso se refresca cada 5 min (suma los puntos de los vuelos abiertos);
+// los días anteriores quedan en memoria y no se vuelven a pedir.
+setInterval(() => cargarHoy(true), WEEK_REFRESH_MS);

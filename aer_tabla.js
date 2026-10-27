@@ -80,8 +80,7 @@ const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || ''
 const esHoy = iso => dayKey(iso) ===
   (DATA.today || new Date().toLocaleDateString('en-CA'));   // yyyy-mm-dd local
 function mapLinks(f){
-  // El mapa se arma solo con los trayectos del día (pasado el día ya no se publica).
-  if(!esHoy(f.ts_start_iso)) return '<span class="na">—</span>';
+  // Cada día tiene su JSON de trayectos: el mapa se arma con el día de la fila.
   const k = rowKey(f).replace(/"/g, '&quot;');
   const link = (modo, txt) => '<a class="mlink" href="#" data-k="' + k +
     '" data-modo="' + modo + '">' + txt + '</a>';
