@@ -282,11 +282,12 @@ function tramosFov(lls){
   const inside = r => Math.abs(r) <= half;   // sector azimutal (la altura se evalúa aparte)
   const dentro = (r, d) => inside(r) && d <= dmax;
   const out = [];
-  const push = (ok, pts) => {
+  const push = (ok, high, pts) => {   // no mezclar tramos que cambian de estilo
     if(pts.length < 2) return;
     const last = out[out.length - 1];
-    if(last && last.ok === ok) last.pts = last.pts.concat(pts.slice(1));
-    else out.push({ok: ok, pts: pts});
+    if(last && last.ok === ok && last.high === high)
+      last.pts = last.pts.concat(pts.slice(1));
+    else out.push({ok: ok, high: high, pts: pts});
   };
   for(let i = 0; i < lls.length - 1; i++){
     const a = lls[i], b = lls[i + 1], sa = S[i], sb = S[i + 1];
@@ -312,9 +313,10 @@ function tramosFov(lls){
     };
     for(let j = 0; j < lim.length - 1; j++){
       const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
+      const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
       const r = sa.r + tm * (sb.r - sa.r);
       const d = sa.d + tm * (sb.d - sa.d);
-      push(dentro(r, d), [at(t0), at(t1)]);
+      push(dentro(r, d), e != null && e > 26, [at(t0), at(t1)]);
     }
   }
   return out;
@@ -333,14 +335,13 @@ function dibujarTrayecto(f){
     for(let j = i; j < lls.length; j++) if(lls[j][4] != null) return lls[j][4];
     return null;
   };
-  // Tramos: adentro continuo (salvo elevación > 27°, que va punteado normal); afuera
+  // Tramos: adentro continuo (salvo elevación > 26°, que va punteado normal); afuera
   // punteado al 50% de opacidad (más ligero que la línea normal).
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
-    const alto = tr.pts.reduce((m, p) => (p[4] != null && p[4] > m ? p[4] : m), -Infinity);
-    const dash = !tr.ok || alto > 26;   // adentro sólido; >26° punteado normal; afuera liviano
+    const dash = !tr.ok || tr.high;     // adentro sólido; >26° punteado normal; afuera liviano
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
       paint: dash
@@ -496,18 +497,21 @@ function dibujarFov(f){
   g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.setLineDash([]); g.stroke();
 
   // Punta del trayecto: delta abierto con la dirección del vuelo (no sólido).
-  let ult = null, prev = null;
-  for(let i = MFOV_PTS.length - 1; i >= 0; i--){
-    const q = MFOV_PTS[i];
-    if(q.x == null || q.x < 0 || q.x > W || q.y < 0 || q.y > H) continue;
-    ult = q;
-    for(let j = i - 1; j >= 0; j--){
-      if(MFOV_PTS[j].x != null){ prev = MFOV_PTS[j]; break; }
+  // Se ubica con un margen de seguridad para no quedar pegado al borde cuando el
+  // trayecto sale del encuadre.
+  const MARGEN = 16;
+  let ult = null;
+  for(let i = 1; i < MFOV_PTS.length; i++){
+    const A = MFOV_PTS[i - 1], B = MFOV_PTS[i];
+    if(A.x == null || B.x == null) continue;
+    for(let k = 0; k <= 40; k++){
+      const tt = k / 40, x = A.x + (B.x - A.x) * tt, y = A.y + (B.y - A.y) * tt;
+      if(x >= MARGEN && x <= W - MARGEN && y >= MARGEN && y <= H - MARGEN)
+        ult = {x: x, y: y, dx: B.x - A.x, dy: B.y - A.y};
     }
-    break;
   }
   if(ult){
-    const ang = prev ? Math.atan2(ult.y - prev.y, ult.x - prev.x) : -Math.PI / 2;
+    const ang = (ult.dx || ult.dy) ? Math.atan2(ult.dy, ult.dx) : -Math.PI / 2;
     const L = 10;
     g.beginPath();
     g.moveTo(ult.x - Math.cos(ang - .5) * L, ult.y - Math.sin(ang - .5) * L);
