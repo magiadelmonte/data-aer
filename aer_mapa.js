@@ -170,7 +170,15 @@ function initMapa(){
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
         paint: {'fill-color': '#fff', 'fill-opacity': .26}});
-      // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
+      // Radio oeste (270°): es el renglón de las etiquetas de distancia. Paralelo al radio,
+      // cada "25 / 50 / 65 km" arranca en su anillo y corre hacia adentro, apoyado sobre la línea.
+      const finRad = destino(lat, lon, 270, rings[2]);
+      m.addSource('radio', {type: 'geojson', data: {type: 'Feature',
+        geometry: {type: 'LineString', coordinates: [[lon, lat], [finRad[1], finRad[0]]]}}});
+      m.addLayer({id: 'radio', type: 'line', source: 'radio',
+        layout: {'line-cap': 'butt'},
+        paint: {'line-color': '#fff', 'line-opacity': .18, 'line-width': .32, 'line-dasharray': [16, 16]}});
+      // Anillos punteados (25 / 50 / 65 km) con su distancia sobre el radio oeste.
       rings.forEach((r, i) => {
         const pts = [];
         for(let a = 0; a <= 360; a += 2){
@@ -185,8 +193,20 @@ function initMapa(){
             'line-width': i ? .42 : .57, 'line-dasharray': [16, 16]}});
         const p = destino(lat, lon, 270, r);
         const el = document.createElement('span');
-        el.className = 'mlab';
+        el.className = 'mlab mlab_km';
         el.textContent = r + ' km';
+        // anchor left: el texto sale del anillo hacia el centro; offset: 4 px adentro y 7 px arriba de la línea.
+        new maplibregl.Marker({element: el, anchor: 'left', offset: [4, -7]})
+          .setLngLat([p[1], p[0]]).addTo(m);
+      });
+      // 8 puntos cardinales en el anillo exterior, blancos y apenas por fuera de la línea.
+      const CARD = [['N', 0], ['NE', 45], ['E', 90], ['SE', 135],
+                    ['S', 180], ['SO', 225], ['O', 270], ['NO', 315]];
+      CARD.forEach(([txt, az]) => {
+        const p = destino(lat, lon, az, rings[2] + 2.5);
+        const el = document.createElement('span');
+        el.className = 'mlab mlab_card';
+        el.textContent = txt;
         new maplibregl.Marker({element: el, anchor: 'center'})
           .setLngLat([p[1], p[0]]).addTo(m);
       });
@@ -202,7 +222,7 @@ function initMapa(){
       const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
       const dLon = dLat / Math.cos(lat * Math.PI / 180);
       m.fitBounds([[lon - dLon, lat - dLat], [lon + dLon, lat + dLat]],
-                  {padding: 18, duration: 0});
+                  {padding: 30, duration: 0});   // margen para los cardinales del anillo exterior
     });
   return m;
 }
