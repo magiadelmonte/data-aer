@@ -608,6 +608,15 @@ function initMapa(){
         new maplibregl.Marker({element: el, anchor: 'center'})
           .setLngLat([p[1], p[0]]).addTo(m);
       });
+      // Bordes de la porción azimutal (13° y 65°): líneas punteadas muy sutiles desde el centro hasta el anillo mayor.
+      [AZ_MIN, AZ_MAX].forEach(az => {
+        const q = destino(lat, lon, az, rings[2]);
+        m.addSource('borde' + az, {type: 'geojson', data: {type: 'Feature',
+          geometry: {type: 'LineString', coordinates: [[lon, lat], [q[1], q[0]]]}}});
+        m.addLayer({id: 'borde' + az, type: 'line', source: 'borde' + az,
+          layout: {'line-cap': 'butt'},
+          paint: {'line-color': '#fff', 'line-opacity': .12, 'line-width': .28, 'line-dasharray': [16, 16]}});
+      });
       const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
       const dLon = dLat / Math.cos(lat * Math.PI / 180);
       m.fitBounds([[lon - dLon, lat - dLat], [lon + dLon, lat + dLat]],
