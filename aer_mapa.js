@@ -279,8 +279,8 @@ function tramosFov(lls){
     while(S[i].r - S[i-1].r > 180) S[i].r -= 360;
     while(S[i].r - S[i-1].r < -180) S[i].r += 360;
   }
-  const inside = (e, r, d) => e != null && e >= F.el_min && e <= F.el_max &&
-    Math.abs(r) <= half && d <= dmax;
+  const inside = r => Math.abs(r) <= half;   // sector azimutal (la altura se evalúa aparte)
+  const dentro = (r, d) => inside(r) && d <= dmax;
   const out = [];
   const push = (ok, pts) => {
     if(pts.length < 2) return;
@@ -298,11 +298,10 @@ function tramosFov(lls){
       const t = (target - v0) / den;
       if(t > 1e-9 && t < 1 - 1e-9) ts.push(t);
     };
-    addT(sa.e, sb.e, F.el_min);
-    addT(sa.e, sb.e, F.el_max);
     addT(sa.r, sb.r, -half);
     addT(sa.r, sb.r, half);
     addT(sa.d, sb.d, dmax);
+    addT(sa.e, sb.e, 26);              // corte en 26°: arriba va punteado
     ts.sort((x, y) => x - y);
     const lim = ts.filter((x, j) => j === 0 || x - ts[j - 1] > 1e-7);
     const at = t => {
@@ -313,10 +312,9 @@ function tramosFov(lls){
     };
     for(let j = 0; j < lim.length - 1; j++){
       const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
-      const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
       const r = sa.r + tm * (sb.r - sa.r);
       const d = sa.d + tm * (sb.d - sa.d);
-      push(inside(e, r, d), [at(t0), at(t1)]);
+      push(dentro(r, d), [at(t0), at(t1)]);
     }
   }
   return out;
@@ -342,7 +340,7 @@ function dibujarTrayecto(f){
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
     const alto = tr.pts.reduce((m, p) => (p[4] != null && p[4] > m ? p[4] : m), -Infinity);
-    const dash = !tr.ok || alto > 27;
+    const dash = !tr.ok || alto > 26;   // adentro sólido; >26° punteado normal; afuera liviano
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
       paint: dash
