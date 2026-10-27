@@ -609,7 +609,7 @@ function iconHTML(key, deg){
   const name = ICONS[key] ? key : 'unknown';
   const spec = ICONS[name];
   const rot = spec.rot ? 'transform:rotate(' + deg.toFixed(0) + 'deg);' : '';
-  const url = 'url("' + ICON_DIR + '/' + name + '.svg")';
+  const url = "url('" + ICON_DIR + '/' + name + ".svg')";
   return '<div class="mplane" style="' + rot + '"><span class="mico" style="' +
     '-webkit-mask-image:' + url + ';mask-image:' + url +
     ';background:' + spec.color + '"></span></div>';
