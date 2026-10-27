@@ -82,13 +82,11 @@
   .mbox { display: flex; flex-direction: column; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
   .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
   .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
-  .mx { margin-left: auto; padding: 3px 9px; background: none; border: 1px solid var(--borde-suave); color: var(--tenue); font: inherit; font-size: 14px; line-height: 1.1; cursor: pointer; }
-  .mx:hover { color: var(--blanco); border-color: var(--acento); }
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
   .mlab { color: #fff; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
   #mmap canvas { outline: none; }
-  .maplibregl-ctrl-attrib { background: rgba(0,0,0,.6) !important; color: var(--tenue) !important; font-size: 10px; }
-  .maplibregl-ctrl-attrib a { color: var(--acento) !important; }
+  .mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
+  .mfoot a { color: var(--acento); text-decoration: none; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
   .mlegend { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 10px; letter-spacing: .04em; color: var(--tenue); }
   .mlegend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -129,8 +127,9 @@
         <span><i style="background:#7fb4c8"></i>8-11</span>
         <span><i style="background:#a48ad6"></i>+11 km</span>
       </div>
-      <button class="mx" id="mx" title="Cerrar (Esc)">✕</button></div>
+</div>
     <div id="mmap"></div>
+    <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · Relieve: Mapzen / AWS Terrain Tiles</div>
   </div>
 </div>
 
@@ -511,7 +510,7 @@ function initMapa(){
     container: 'mmap',
     style: {version: 8, sources: {}, layers: [
       {id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}}]},
-    center: [lon, lat], zoom: 8, attributionControl: {compact: true}, interactive: false,
+    center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
   MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
@@ -681,7 +680,6 @@ function cerrarModal(){
   document.body.style.overflow = '';
 }
 
-document.getElementById('mx').addEventListener('click', cerrarModal);
 document.getElementById('modal').addEventListener('click', e => {
   if(e.target.id === 'modal') cerrarModal();
 });
