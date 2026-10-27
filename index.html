@@ -83,6 +83,9 @@
   .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
   .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
+  .mcard { color: #b49650; font: 700 18px/1 "Share Tech Mono", "Courier Prime", monospace; text-shadow: 0 0 4px #000, 0 0 8px #000; }
+  .mmont { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #b49650; filter: drop-shadow(0 0 3px #000); }
+  .mmont-n { position: relative; color: #d4c9b0; font: 12px/1 "Share Tech Mono", "Courier Prime", monospace; letter-spacing: .04em; white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 6px #000; }
   .mlab { color: #fff; opacity: .5; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
   #mmap canvas { outline: none; }
   .mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
@@ -120,7 +123,7 @@
     <div class="mhead"><span id="mtit"></span><span class="msub" id="msub"></span>
 </div>
     <div id="mmap"></div>
-    <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · Relieve: Mapzen / AWS Terrain Tiles</div>
+    <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
   </div>
 </div>
 
@@ -373,72 +376,24 @@ pollReportes();
 // ============================================================
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
-// Basemap: CARTO Dark Matter (vectorial, con etiquetas; gratis con atribución) + relieve propio (hillshade de MapLibre)
-// alimentado con los tiles de elevación Terrarium de AWS (sin API key).
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-const DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
-// Ajustes del relieve: exag (0-1, intensidad), sombra / luz / acento (colores con alpha) y dir (dirección de la luz, 0 = N, 270 = O).
-const RELIEVE = { exag: 0.8, sombra: 'rgba(0,0,0,0.6)', luz: 'rgba(180,150,80,0.35)', acento: 'rgba(0,0,0,0.35)', dir: 300 };
-// Recolor de los azules del estilo Nova: todo color con matiz azul/cian/índigo se pasa a TINTE.
-// h = matiz destino (0-360; 40 = ocre del sitio) y s = fracción de saturación que se conserva (0 = gris puro, 1 = igual de saturado).
-const TINTE = { h: 40, s: 0.30 };
-const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se considera "azul" y saturación mínima
-function parseColor(v){
-  let m = /^#([0-9a-f]{3,8})$/i.exec(v);
-  if(m){
-    let x = m[1]; if(x.length < 6) x = x.split('').map(c => c + c).join('');
-    return {r: parseInt(x.slice(0,2),16), g: parseInt(x.slice(2,4),16), b: parseInt(x.slice(4,6),16),
-            a: x.length === 8 ? parseInt(x.slice(6,8),16) / 255 : 1};
-  }
-  m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+%?))?\s*\)$/i.exec(v);
-  if(m) return {r: +m[1], g: +m[2], b: +m[3], a: m[4] == null ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])};
-  m = /^hsla?\(\s*([\d.]+)(?:deg)?[ ,]+([\d.]+)%[ ,]+([\d.]+)%(?:[ ,/]+([\d.]+%?))?\s*\)$/i.exec(v);
-  if(m){
-    const c = hsl2rgb(+m[1], +m[2] / 100, +m[3] / 100);
-    return {r: c[0], g: c[1], b: c[2], a: m[4] == null ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])};
-  }
-  return null;
-}
-function rgb2hsl(r, g, b){
-  r /= 255; g /= 255; b /= 255;
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
-  if(d === 0) return [0, 0, l];
-  const s = d / (1 - Math.abs(2 * l - 1));
-  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return [(h * 60 + 360) % 360, s, l];
-}
-function hsl2rgb(h, s, l){
-  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
-  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
-}
-function recolorAzules(v){   // recorre arrays/objetos (expresiones, stops) y transforma solo los strings que son colores azules
-  if(Array.isArray(v)) return v.map(recolorAzules);
-  if(v && typeof v === 'object'){ for(const k in v) v[k] = recolorAzules(v[k]); return v; }
-  if(typeof v !== 'string') return v;
-  const c = parseColor(v); if(!c) return v;
-  const [h, s, l] = rgb2hsl(c.r, c.g, c.b);
-  if(h < AZUL_H[0] || h > AZUL_H[1] || s < AZUL_S_MIN) return v;
-  const n = hsl2rgb(TINTE.h, s * TINTE.s, l);
-  return 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + c.a + ')';
-}
-// Etiquetas del mapa base: "Capilla del Monte" se parte en dos renglones ("Capilla del" / "Monte").
-function partirCapilla(tf){
-  let base;
-  if(typeof tf === 'string'){   // plantilla "{name}" -> expresión
-    const parts = tf.split(/(\{[^}]+\})/).filter(Boolean)
-      .map(x => /^\{.+\}$/.test(x) ? ['to-string', ['coalesce', ['get', x.slice(1, -1)], '']] : x);
-    if(parts.length === 0) return tf;   // text-field vacío: se deja como está
-    base = parts.length === 1 ? parts[0] : ['concat', ...parts];
-  } else if(Array.isArray(tf) && tf[0] === 'step'){
-    // text-field que cambia con el zoom: "zoom" solo puede ser la entrada de un "step" de primer nivel,
-    // así que se transforma cada salida del step (índices pares desde el 2) y no la expresión completa.
-    return tf.map((x, i) => (i >= 2 && i % 2 === 0) ? partirCapilla(x) : x);
-  } else if(Array.isArray(tf) && tf[0] !== 'format' && JSON.stringify(tf).indexOf('"zoom"') < 0){
-    base = ['to-string', tf];
-  } else return tf;
-  return ['let', 'n', base, ['case', ['==', ['var', 'n'], 'Capilla del Monte'], 'Capilla del\nMonte', ['var', 'n']]];
-}
+// Basemap: igual que el mapa viejo, CARTO dark_all (raster, con etiquetas), @2x para pantallas nítidas.
+const BASE_STYLE = {version: 8, sources: {carto: {type: 'raster', tileSize: 256, maxzoom: 19,
+  tiles: ['a', 'b', 'c', 'd'].map(x => 'https://' + x + '.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png')}},
+  layers: [{id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}},
+           {id: 'carto', type: 'raster', source: 'carto'}]};
+// Puntos cardinales y montañas del mapa viejo. Los cardinales van sobre el anillo mayor (65 km);
+// offset_metros del viejo (anillo de 15 km) escalado x65/15. Rumbos: N 0, E 90, S 180, O 270.
+const CARDINALES = [
+  {nombre: 'N', rumbo: 0,   offset_km: 0.35 * 65 / 15},
+  {nombre: 'E', rumbo: 90,  offset_km: 0.60 * 65 / 15},
+  {nombre: 'S', rumbo: 180, offset_km: 0.45 * 65 / 15},
+  {nombre: 'O', rumbo: 270, offset_km: 0.55 * 65 / 15},
+];
+const MONTANAS = [
+  {nombre: 'Uritorco', lat: -30.84260166241098, lon: -64.47660205313724, tx: 20, ty: -25},
+  {nombre: 'Gemelas',  lat: -30.877099071653724, lon: -64.49246248023255, tx: 0,  ty: -25},
+];
+const MONTANA_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4 L16.5 11.5 L18.2 9.2 L23 18 L1 18 Z"/></svg>';
 const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   airliner:   { color: '#e8e8e8', rot: true,
@@ -515,57 +470,11 @@ function initMapa(){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
   const m = new maplibregl.Map({
-    container: 'mmap',
-    style: {version: 8, sources: {}, layers: [
-      {id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}}]},
+    container: 'mmap', style: BASE_STYLE,
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
-  // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida + relieve, 1 = recolor + relieve, 0 = estilo original.
-  // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
-  const armar = (base, nivel) => {
-    const st = JSON.parse(base);
-    if(nivel >= 1){
-      (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // por si quedara algún azul
-      const bg = (st.layers || []).find(l => l.type === 'background');
-      if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = '#05070a'; }
-      st.sources.dem = {type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 14,
-        encoding: 'terrarium', attribution: 'Relieve: Mapzen / AWS Terrain Tiles'};
-      // El relieve va encima de fondos y agua y debajo de rutas, límites y etiquetas.
-      let idx = st.layers.findIndex(l => l.type === 'line' || l.type === 'symbol');
-      if(idx < 0) idx = st.layers.length;
-      st.layers.splice(idx, 0, {id: 'relieve', type: 'hillshade', source: 'dem', paint: {
-        'hillshade-exaggeration': RELIEVE.exag, 'hillshade-shadow-color': RELIEVE.sombra,
-        'hillshade-highlight-color': RELIEVE.luz, 'hillshade-accent-color': RELIEVE.acento,
-        'hillshade-illumination-direction': RELIEVE.dir, 'hillshade-illumination-anchor': 'map'}});
-    }
-    if(nivel >= 2){
-      (st.layers || []).forEach(l => {
-        if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
-      });
-    }
-    return st;
-  };
-  MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
-    .then(r => r.json())
-    .then(st => {
-      const base = JSON.stringify(st);
-      let nivel = 2;
-      const onErr = e => {
-        const msg = (e && e.error && e.error.message) || '';
-        if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) && !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
-          console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
-          nivel--; m.setStyle(armar(base, nivel), {diff: false});
-        }
-      };
-      m.on('error', onErr);
-      m.setStyle(armar(base, nivel), {diff: false});
-      return new Promise(res => {
-        const check = () => (m.isStyleLoaded() &&
-          (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
-        check();
-      });
-    })
+  MMAP_READY = new Promise(res => m.once('load', res))
     .then(() => {
       // Porción de pizza (13°-65° de azimut) hasta el radio mayor.
       const sector = [[lon, lat]];
@@ -578,7 +487,7 @@ function initMapa(){
       m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-        paint: {'fill-color': '#fff', 'fill-opacity': .08}});
+        paint: {'fill-color': '#fff', 'fill-opacity': .2}});
       // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
       rings.forEach((r, i) => {
         const pts = [];
@@ -607,6 +516,21 @@ function initMapa(){
         m.addLayer({id: 'borde' + az, type: 'line', source: 'borde' + az,
           layout: {'line-cap': 'butt'},
           paint: {'line-color': '#fff', 'line-opacity': .12, 'line-width': .28, 'line-dasharray': [16, 16]}});
+      });
+      // Puntos cardinales.
+      CARDINALES.forEach(c => {
+        const q = destino(lat, lon, c.rumbo, rings[2] + c.offset_km);
+        const el = document.createElement('div');
+        el.className = 'mcard';
+        el.textContent = c.nombre;
+        new maplibregl.Marker({element: el, anchor: 'center'}).setLngLat([q[1], q[0]]).addTo(m);
+      });
+      // Montañas (ícono + nombre con el desplazamiento del mapa viejo).
+      MONTANAS.forEach(mt => {
+        const el = document.createElement('div');
+        el.className = 'mmont';
+        el.innerHTML = MONTANA_SVG + '<div class="mmont-n" style="top:' + mt.ty + 'px;left:' + mt.tx + 'px">' + mt.nombre + '</div>';
+        new maplibregl.Marker({element: el, anchor: 'center'}).setLngLat([mt.lon, mt.lat]).addTo(m);
       });
       const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
       const dLon = dLat / Math.cos(lat * Math.PI / 180);
@@ -651,13 +575,6 @@ function dibujarTrayecto(f){
       'circle-stroke-color': '#000', 'circle-stroke-width': 1.5}});
   MTRAJ_IDS.push('trajhover');
   activarHover();
-  // Punto de partida.
-  MMAP.addSource('trajstart', {type: 'geojson', data: {type: 'Feature',
-    geometry: {type: 'Point', coordinates: [lls[0][1], lls[0][0]]}}});
-  MMAP.addLayer({id: 'trajstart', type: 'circle', source: 'trajstart',
-    paint: {'circle-radius': 4, 'circle-color': '#000',
-      'circle-stroke-color': '#4f8a6d', 'circle-stroke-width': 2}});
-  MTRAJ_IDS.push('trajstart');
   // Avión en el último punto, orientado al rumbo final.
   const brg = rumboFinal(lls);
   const el = document.createElement('div');
