@@ -1,0 +1,91 @@
+/* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
+:root {
+  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #05070a; --panel: #05070a;
+  --borde: rgba(180,150,80,.45); --borde-suave: rgba(180,150,80,.25);
+  --acento: #b49650; --ok: #4f8a6d; --tenue: #9a917c; --blanco: #fff; --no: #c0574d;
+  --fila-alt: rgba(180,150,80,.05); --hover: rgba(180,150,80,.12);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Courier New', ui-monospace, Menlo, Consolas, monospace;
+  background: var(--fondo); color: var(--txt); padding: 0 16px 40px;
+  -webkit-font-smoothing: antialiased;
+}
+header { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 78px; margin: 0 -16px 24px; padding: 0 12px; border-bottom: 1px solid var(--borde); }
+header h1 {
+  margin: 0; font-size: clamp(1.2rem, 4vw, 1.75rem); line-height: 1.2;
+  letter-spacing: .14em; font-weight: 700; color: var(--txt); text-transform: uppercase;
+}
+header .subtitle { margin-top: 4px; font-size: clamp(.7rem, 1.6vw, .875rem); letter-spacing: .06em; color: var(--tenue); }
+header .rule { display: none; }
+#reloj { position: absolute; left: 12px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; text-align: left; line-height: 1.25; }
+#reloj .fecha, #reloj .hora { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Courier New es monoespaciada: fecha (10 car.) y hora (8 car.) ocupan el mismo ancho si hora = fecha x 10/8 */
+#reloj .fecha { font-size: 22px; }
+#reloj .hora { font-size: 27.5px; line-height: 1.1; color: inherit; }
+main { max-width: 1120px; margin: 0 auto; }
+.day { background: var(--panel); border: 1px solid var(--borde); margin: 0 0 22px; overflow: hidden; }
+.day-title {
+  display: flex; align-items: center; margin: 0; padding: 8px 12px;
+  border-bottom: 1px solid var(--borde); color: var(--blanco);
+  font-size: .875rem; font-weight: 700; letter-spacing: .04em;
+}
+.day-title.toggle { cursor: pointer; user-select: none; }
+.day-title.toggle:hover { background: var(--hover); }
+.day-title.toggle::after { content: '\25B8'; margin-left: auto; color: var(--acento); font-size: 1.3rem; line-height: 1; }
+.day.open > .day-title.toggle::after { content: '\25BE'; }
+.day:not(.open) > .day-title { border-bottom: 0; }
+.day-body { display: none; }
+.day.open > .day-body { display: block; }
+.day-title.toggle:focus-visible { outline: 1px solid var(--acento); outline-offset: -3px; }
+.day.live { border-color: var(--ok); }
+.day.live .day-title { color: var(--ok); border-bottom-color: var(--ok); }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: 10px; background: var(--ok); animation: livepulse 1.6s ease-out infinite; }
+@keyframes livepulse {
+  0% { box-shadow: 0 0 0 0 rgba(79,138,109,.75); }
+  70% { box-shadow: 0 0 0 9px rgba(79,138,109,0); }
+  100% { box-shadow: 0 0 0 0 rgba(79,138,109,0); }
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+th, td { padding: 6px 12px; text-align: left; white-space: nowrap; }
+thead th { color: var(--tenue); font-size: 11px; font-weight: 400; letter-spacing: .09em; text-transform: uppercase; border-bottom: 1px solid var(--borde-suave); }
+tbody td { border-bottom: 1px solid var(--borde-suave); }
+.day.today tbody tr:nth-child(even) { background: var(--fila-alt); }
+.day.today tbody tr:hover, .day.live tbody tr:hover { background: var(--hover); }
+tbody tr:last-child td { border-bottom: none; }
+.hora, .dur { font-variant-numeric: tabular-nums; }
+.hora { font-weight: 700; color: var(--blanco); }
+.cat { display: block; color: var(--tenue); font-size: 11px; }
+.tot { color: var(--tenue); }
+.flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px; object-fit: cover; border: 1px solid var(--borde); }
+.mark { font-weight: 700; }
+.yes { color: var(--ok); }
+.no { color: var(--no); }
+.na { color: var(--tenue); }
+.empty { margin: 0; padding: 16px; text-align: center; color: var(--tenue); font-size: .875rem; }
+.dir { font-weight: 700; letter-spacing: .02em; }
+tbody tr.has-traj { cursor: pointer; }
+/* ---- Modal de trayectoria ---- */
+#modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
+#modal.on { display: flex; }
+.mbox { display: flex; flex-direction: column; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
+.mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
+.mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
+#mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
+.mlab { color: #fff; opacity: .5; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
+#mmap canvas { outline: none; }
+.mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
+.mfoot a { color: var(--acento); text-decoration: none; }
+.mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(5,7,10,.92); border: 1px solid var(--borde); color: #fff; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
+.mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
+footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
+footer a { color: var(--acento); }
+@media (max-width: 640px) {
+  header h1 { letter-spacing: .08em; }
+  header { padding-left: 112px; }
+  #reloj .fecha { font-size: 16px; }
+  #reloj .hora { font-size: 20px; }
+  th, td { padding: 6px 8px; font-size: 12px; }
+  .day-body { overflow-x: auto; }
+}
