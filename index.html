@@ -87,10 +87,8 @@
   #mmap canvas { outline: none; }
   .mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
   .mfoot a { color: var(--acento); text-decoration: none; }
+  .mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(5,7,10,.92); border: 1px solid var(--borde); color: #fff; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
-  .mlegend { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 10px; letter-spacing: .04em; color: var(--tenue); }
-  .mlegend span { display: inline-flex; align-items: center; gap: 5px; }
-  .mlegend i { width: 14px; height: 5px; display: inline-block; }
   footer { max-width: 1120px; margin: 8px auto 0; text-align: center; font-size: 11px; color: var(--tenue); letter-spacing: .04em; }
   footer a { color: var(--acento); }
   @media (max-width: 640px) {
@@ -120,13 +118,6 @@
 <div id="modal" aria-hidden="true">
   <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtit">
     <div class="mhead"><span id="mtit"></span><span class="msub" id="msub"></span>
-      <div class="mlegend">
-        <span><i style="background:#c0574d"></i>0-2 km</span>
-        <span><i style="background:#d08a3a"></i>2-5</span>
-        <span><i style="background:#d8c46a"></i>5-8</span>
-        <span><i style="background:#7fb4c8"></i>8-11</span>
-        <span><i style="background:#a48ad6"></i>+11 km</span>
-      </div>
 </div>
     <div id="mmap"></div>
     <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · Relieve: Mapzen / AWS Terrain Tiles</div>
@@ -587,7 +578,7 @@ function initMapa(){
       m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-        paint: {'fill-color': '#fff', 'fill-opacity': .12}});
+        paint: {'fill-color': '#fff', 'fill-opacity': .2}});
       // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
       rings.forEach((r, i) => {
         const pts = [];
@@ -642,25 +633,24 @@ function dibujarTrayecto(f){
     for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
     return 0;
   };
-  const addRun = (pts, color) => {
-    const id = 'traj' + MTRAJ_IDS.length;
-    MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
-      geometry: {type: 'LineString',
-        coordinates: pts.map(p => [p[1], p[0]])}}});
-    MMAP.addLayer({id: id, type: 'line', source: id,
-      layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: {'line-color': color, 'line-width': 2.4, 'line-opacity': .95}});
-    MTRAJ_IDS.push(id);
-  };
-  let run = [lls[0]], runColor = colorAlt(altOf(0));
-  for(let i = 1; i < lls.length; i++){
-    const c = colorAlt(altOf(i));
-    if(c === runColor){ run.push(lls[i]); continue; }
-    run.push(lls[i]);
-    addRun(run, runColor);
-    run = [lls[i]]; runColor = c;
-  }
-  if(run.length > 1) addRun(run, runColor);
+  const id = 'traj0';
+  MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
+    geometry: {type: 'LineString',
+      coordinates: lls.map(p => [p[1], p[0]])}}});
+  MMAP.addLayer({id: id, type: 'line', source: id,
+    layout: {'line-join': 'round', 'line-cap': 'round'},
+    paint: {'line-color': '#fff', 'line-width': 1.2, 'line-opacity': .95}});
+  MTRAJ_IDS.push(id);
+  // Altura en cada vértice (si falta el dato se arrastra el último conocido) para el hover.
+  MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1], alt: p[2] != null ? p[2] : altOf(i)}));
+  const hasAlt = lls.some(p => p[2] != null);
+  if(!hasAlt) MHOVER = null;
+  MMAP.addSource('trajhover', {type: 'geojson', data: {type: 'FeatureCollection', features: []}});
+  MMAP.addLayer({id: 'trajhover', type: 'circle', source: 'trajhover',
+    paint: {'circle-radius': 4, 'circle-color': '#fff',
+      'circle-stroke-color': '#000', 'circle-stroke-width': 1.5}});
+  MTRAJ_IDS.push('trajhover');
+  activarHover();
   // Punto de partida.
   MMAP.addSource('trajstart', {type: 'geojson', data: {type: 'Feature',
     geometry: {type: 'Point', coordinates: [lls[0][1], lls[0][0]]}}});
@@ -676,17 +666,48 @@ function dibujarTrayecto(f){
     .setLngLat([lls[lls.length - 1][1], lls[lls.length - 1][0]]).addTo(MMAP);
 }
 
-// Bandas de altitud (msnm) para el color del trayecto y la escala del título.
-const ALT_BANDS = [
-  {max: 2000, color: '#c0574d'},
-  {max: 5000, color: '#d08a3a'},
-  {max: 8000, color: '#d8c46a'},
-  {max: 11000, color: '#7fb4c8'},
-  {max: Infinity, color: '#a48ad6'},
-];
-function colorAlt(alt){
-  const b = ALT_BANDS.find(x => alt < x.max);
-  return (b || ALT_BANDS[ALT_BANDS.length - 1]).color;
+// Hover sobre el trayecto: muestra la altura (msnm) del punto más cercano al mouse.
+let MHOVER = null, MTIP = null, HOVER_ON = false;
+function activarHover(){
+  if(HOVER_ON) return;
+  HOVER_ON = true;
+  MTIP = document.createElement('div');
+  MTIP.className = 'mtip';
+  MMAP.getContainer().appendChild(MTIP);
+  const ocultar = () => {
+    MTIP.style.display = 'none';
+    MMAP.getCanvas().style.cursor = '';
+    const src = MMAP.getSource('trajhover');
+    if(src) src.setData({type: 'FeatureCollection', features: []});
+  };
+  MMAP.on('mousemove', e => {
+    if(!MHOVER || MHOVER.length < 2 || !MMAP.getSource('trajhover')) return ocultar();
+    const mx = e.point.x, my = e.point.y;
+    let best = null;
+    for(let i = 0; i < MHOVER.length - 1; i++){
+      const A = MMAP.project([MHOVER[i].lon, MHOVER[i].lat]);
+      const B = MMAP.project([MHOVER[i + 1].lon, MHOVER[i + 1].lat]);
+      const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy;
+      let t = L2 ? ((mx - A.x) * dx + (my - A.y) * dy) / L2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const px = A.x + t * dx, py = A.y + t * dy;
+      const d = Math.hypot(mx - px, my - py);
+      if(!best || d < best.d) best = {d: d, i: i, t: t, x: px, y: py};
+    }
+    if(!best || best.d > 14) return ocultar();
+    const P = MHOVER[best.i], Q = MHOVER[best.i + 1];
+    const alt = P.alt + best.t * (Q.alt - P.alt);
+    const lon = P.lon + best.t * (Q.lon - P.lon), lat = P.lat + best.t * (Q.lat - P.lat);
+    MMAP.getSource('trajhover').setData({type: 'Feature',
+      geometry: {type: 'Point', coordinates: [lon, lat]}});
+    MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m';
+    MTIP.style.display = 'block';
+    const W = MMAP.getContainer().clientWidth, tw = MTIP.offsetWidth;
+    MTIP.style.left = Math.max(4, Math.min(W - tw - 4, best.x + 12)) + 'px';
+    MTIP.style.top = Math.max(4, best.y - 30) + 'px';
+    MMAP.getCanvas().style.cursor = 'crosshair';
+  });
+  MMAP.getCanvas().addEventListener('mouseleave', ocultar);
 }
 
 function iconHTML(key, deg){
