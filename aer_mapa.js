@@ -232,9 +232,10 @@ function limpiarTrayecto(){
   if(MPLANE){ MPLANE.remove(); MPLANE = null; }
 }
 
-// Separa el trayecto en tramos según el FOV de la cámara en cada punto (`in_fov`, 0/1:
-// azimut + altura + alcance). Los dos tramos comparten el punto de cambio, así no se corta.
-function tramosFov(lls){
+// Separa el trayecto en tramos dentro/fuera del FOV. El corte se calcula en el
+// punto exacto donde el segmento cruza un límite (azimut, elevación o alcance) y
+// no en el vértice: así la línea no queda sólida afuera ni punteada adentro.
+function tramosFlags(lls){                 // respaldo si falta el bloque fov en los datos
   const out = [];
   let run = [lls[0]], ok = lls[0][3] !== 0;
   for(let i = 1; i < lls.length; i++){
@@ -246,7 +247,65 @@ function tramosFov(lls){
     ok = ok2;
   }
   out.push({ok: ok, pts: run});
-  return out.filter(t => t.pts.length > 1);
+  return out.filter(tr => tr.pts.length > 1);
+}
+
+function tramosFov(lls){
+  const F = TRAJ.fov;
+  if(!F || lls.length < 2 || typeof bearing !== 'function' || typeof distKm !== 'function')
+    return tramosFlags(lls);
+  const half = F.fovH / 2, dmax = F.radius_km || 65;
+  // Valores de cada vértice que definen el FOV, con el azimut relativo al centro
+  // desenvuelto para que un cruce por el sur no salte de +180 a -180.
+  const S = lls.map(p => ({
+    e: p[4],
+    r: ((bearing(TRAJ.center_lat, TRAJ.center_lon, p[0], p[1]) - F.az0 + 540) % 360) - 180,
+    d: distKm(p[0], p[1], TRAJ.center_lat, TRAJ.center_lon)}));
+  for(let i = 1; i < S.length; i++){
+    while(S[i].r - S[i-1].r > 180) S[i].r -= 360;
+    while(S[i].r - S[i-1].r < -180) S[i].r += 360;
+  }
+  const inside = (e, r, d) => e != null && e >= F.el_min && e <= F.el_max &&
+    Math.abs(r) <= half && d <= dmax;
+  const out = [];
+  const push = (ok, pts) => {
+    if(pts.length < 2) return;
+    const last = out[out.length - 1];
+    if(last && last.ok === ok) last.pts = last.pts.concat(pts.slice(1));
+    else out.push({ok: ok, pts: pts});
+  };
+  for(let i = 0; i < lls.length - 1; i++){
+    const a = lls[i], b = lls[i + 1], sa = S[i], sb = S[i + 1];
+    const ts = [0, 1];
+    const addT = (v0, v1, target) => {
+      if(v0 == null || v1 == null) return;
+      const den = v1 - v0;
+      if(!den) return;
+      const t = (target - v0) / den;
+      if(t > 1e-9 && t < 1 - 1e-9) ts.push(t);
+    };
+    addT(sa.e, sb.e, F.el_min);
+    addT(sa.e, sb.e, F.el_max);
+    addT(sa.r, sb.r, -half);
+    addT(sa.r, sb.r, half);
+    addT(sa.d, sb.d, dmax);
+    ts.sort((x, y) => x - y);
+    const lim = ts.filter((x, j) => j === 0 || x - ts[j - 1] > 1e-7);
+    const at = t => {
+      const e = (sa.e == null || sb.e == null) ? null : sa.e + t * (sb.e - sa.e);
+      const alt = (a[2] == null || b[2] == null) ? (a[2] == null ? b[2] : a[2])
+                                                : a[2] + t * (b[2] - a[2]);
+      return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), alt, 1, e];
+    };
+    for(let j = 0; j < lim.length - 1; j++){
+      const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
+      const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
+      const r = sa.r + tm * (sb.r - sa.r);
+      const d = sa.d + tm * (sb.d - sa.d);
+      push(inside(e, r, d), [at(t0), at(t1)]);
+    }
+  }
+  return out;
 }
 
 function dibujarTrayecto(f){
