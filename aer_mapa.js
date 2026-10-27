@@ -251,7 +251,7 @@ function tramosFov(lls){
 
 function dibujarTrayecto(f){
   limpiarTrayecto();
-  const lls = f.path.map(p => [p[0], p[1], p[2], p[3]]);
+  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4]]);
   const altOf = i => {              // altura (m): si falta el dato se arrastra el último conocido
     for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
     for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
