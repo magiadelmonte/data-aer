@@ -376,11 +376,17 @@ pollReportes();
 // ============================================================
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
-// Basemap: igual que el mapa viejo, CARTO dark_all (raster, con etiquetas), @2x para pantallas nítidas.
-const BASE_STYLE = {version: 8, sources: {carto: {type: 'raster', tileSize: 256, maxzoom: 19,
-  tiles: ['a', 'b', 'c', 'd'].map(x => 'https://' + x + '.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png')}},
-  layers: [{id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}},
-           {id: 'carto', type: 'raster', source: 'carto'}]};
+// Basemap CARTO Dark Matter. Desde fines de agosto de 2026 CARTO exige API key en sus tiles raster
+// (sin key salen con la marca "API KEY REQUIRED"). Key gratuita: https://carto.com/basemaps/apikey
+// - Con CARTO_KEY: tiles raster dark_all (igual que el mapa viejo).
+// - Sin CARTO_KEY: estilo vectorial Dark Matter (mismo diseño, sin raster).
+const CARTO_KEY = '';
+const BASE_STYLE = CARTO_KEY
+  ? {version: 8, sources: {carto: {type: 'raster', tileSize: 256, maxzoom: 19,
+      tiles: ['https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png?key=' + CARTO_KEY]}},
+     layers: [{id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}},
+              {id: 'carto', type: 'raster', source: 'carto'}]}
+  : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 // Puntos cardinales y montañas del mapa viejo. Los cardinales van sobre el anillo mayor (65 km);
 // offset_metros del viejo (anillo de 15 km) escalado x65/15. Rumbos: N 0, E 90, S 180, O 270.
 const CARDINALES = [
