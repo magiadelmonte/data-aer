@@ -232,8 +232,8 @@ function limpiarTrayecto(){
   if(MPLANE){ MPLANE.remove(); MPLANE = null; }
 }
 
-// Separa el trayecto en tramos según el FOV de altura de cada punto (`el_fov`, 0/1).
-// Los dos tramos comparten el punto de cambio, así la línea no queda cortada.
+// Separa el trayecto en tramos según el FOV de la cámara en cada punto (`in_fov`, 0/1:
+// azimut + altura + alcance). Los dos tramos comparten el punto de cambio, así no se corta.
 function tramosFov(lls){
   const out = [];
   let run = [lls[0]], ok = lls[0][3] !== 0;
@@ -252,12 +252,17 @@ function tramosFov(lls){
 function dibujarTrayecto(f){
   limpiarTrayecto();
   const lls = f.path.map(p => [p[0], p[1], p[2], p[3]]);
-  const altOf = i => {
+  const altOf = i => {              // altura (m): si falta el dato se arrastra el último conocido
     for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
     for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
     return 0;
   };
-  // Un tramo por cada parte con/sin FOV de altura: continua adentro, punteada afuera.
+  const elOf = i => {               // altura relativa (grados sobre el horizonte), idem
+    for(let j = i; j >= 0; j--) if(lls[j][4] != null) return lls[j][4];
+    for(let j = i; j < lls.length; j++) if(lls[j][4] != null) return lls[j][4];
+    return null;
+  };
+  // Un tramo por cada parte dentro/fuera del FOV: continua adentro, punteada afuera.
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
@@ -270,8 +275,10 @@ function dibujarTrayecto(f){
            'line-dasharray': [.4, 2.2]}});
     MTRAJ_IDS.push(id);
   });
-  // Altura en cada vértice (si falta el dato se arrastra el último conocido) para el hover.
-  MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1], alt: p[2] != null ? p[2] : altOf(i)}));
+  // Altura y altura relativa en cada vértice, para el globo del hover.
+  MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1],
+    alt: p[2] != null ? p[2] : altOf(i),
+    el: p[4] != null ? p[4] : elOf(i)}));
   const hasAlt = lls.some(p => p[2] != null);
   if(!hasAlt) MHOVER = null;
   MMAP.addSource('trajhover', {type: 'geojson', data: {type: 'FeatureCollection', features: []}});
@@ -319,10 +326,14 @@ function activarHover(){
     if(!best || best.d > 14) return ocultar();
     const P = MHOVER[best.i], Q = MHOVER[best.i + 1];
     const alt = P.alt + best.t * (Q.alt - P.alt);
+    // Altura relativa (grados): se interpola igual que la altura; null si no hay dato.
+    const elev = (P.el == null && Q.el == null) ? null
+      : (P.el == null ? Q.el : Q.el == null ? P.el : P.el + best.t * (Q.el - P.el));
     const lon = P.lon + best.t * (Q.lon - P.lon), lat = P.lat + best.t * (Q.lat - P.lat);
     MMAP.getSource('trajhover').setData({type: 'Feature',
       geometry: {type: 'Point', coordinates: [lon, lat]}});
-    MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m';
+    MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m' +
+      (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°');
     MTIP.style.display = 'block';
     const W = MMAP.getContainer().clientWidth, tw = MTIP.offsetWidth;
     MTIP.style.left = Math.max(4, Math.min(W - tw - 4, best.x + 12)) + 'px';
