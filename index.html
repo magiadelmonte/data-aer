@@ -83,7 +83,7 @@
   .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
   .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
-  .mlab { color: #fff; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
+  .mlab { color: #fff; opacity: .5; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
   #mmap canvas { outline: none; }
   .mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
   .mfoot a { color: var(--acento); text-decoration: none; }
@@ -431,6 +431,18 @@ function recolorAzules(v){   // recorre arrays/objetos (expresiones, stops) y tr
   const n = hsl2rgb(TINTE.h, s * TINTE.s, l);
   return 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + c.a + ')';
 }
+// Etiquetas del mapa base: "Capilla del Monte" se parte en dos renglones ("Capilla del" / "Monte").
+function partirCapilla(tf){
+  let base;
+  if(typeof tf === 'string'){   // plantilla "{name}" -> expresión
+    const parts = tf.split(/(\{[^}]+\})/).filter(Boolean)
+      .map(x => /^\{.+\}$/.test(x) ? ['to-string', ['coalesce', ['get', x.slice(1, -1)], '']] : x);
+    base = parts.length === 1 ? parts[0] : ['concat', ...parts];
+  } else if(Array.isArray(tf) && tf[0] !== 'format'){
+    base = ['to-string', tf];
+  } else return tf;
+  return ['let', 'n', base, ['case', ['==', ['var', 'n'], 'Capilla del Monte'], 'Capilla del\nMonte', ['var', 'n']]];
+}
 const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   airliner:   { color: '#e8e8e8', rot: true,
@@ -517,6 +529,9 @@ function initMapa(){
     .then(r => r.json())
     .then(st => {
       (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // por si quedara algún azul
+      (st.layers || []).forEach(l => {
+        if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
+      });
       const bg = (st.layers || []).find(l => l.type === 'background');
       if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = '#05070a'; }
       st.sources.dem = {type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 14,
@@ -559,7 +574,7 @@ function initMapa(){
           geometry: {type: 'LineString', coordinates: pts}}});
         m.addLayer({id: 'ring' + r, type: 'line', source: 'ring' + r,
           layout: {'line-cap': 'butt', 'line-join': 'round'},
-          paint: {'line-color': '#fff', 'line-opacity': i ? .3 : .42,
+          paint: {'line-color': '#fff', 'line-opacity': i ? .15 : .21,
             'line-width': i ? .28 : .38, 'line-dasharray': [16, 16]}});
         const p = destino(lat, lon, 270, r);
         const el = document.createElement('span');
