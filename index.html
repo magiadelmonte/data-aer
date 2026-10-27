@@ -437,8 +437,13 @@ function partirCapilla(tf){
   if(typeof tf === 'string'){   // plantilla "{name}" -> expresión
     const parts = tf.split(/(\{[^}]+\})/).filter(Boolean)
       .map(x => /^\{.+\}$/.test(x) ? ['to-string', ['coalesce', ['get', x.slice(1, -1)], '']] : x);
+    if(parts.length === 0) return tf;   // text-field vacío: se deja como está
     base = parts.length === 1 ? parts[0] : ['concat', ...parts];
-  } else if(Array.isArray(tf) && tf[0] !== 'format'){
+  } else if(Array.isArray(tf) && tf[0] === 'step'){
+    // text-field que cambia con el zoom: "zoom" solo puede ser la entrada de un "step" de primer nivel,
+    // así que se transforma cada salida del step (índices pares desde el 2) y no la expresión completa.
+    return tf.map((x, i) => (i >= 2 && i % 2 === 0) ? partirCapilla(x) : x);
+  } else if(Array.isArray(tf) && tf[0] !== 'format' && JSON.stringify(tf).indexOf('"zoom"') < 0){
     base = ['to-string', tf];
   } else return tf;
   return ['let', 'n', base, ['case', ['==', ['var', 'n'], 'Capilla del Monte'], 'Capilla del\nMonte', ['var', 'n']]];
@@ -525,13 +530,12 @@ function initMapa(){
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
-  MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
-    .then(r => r.json())
-    .then(st => {
+  // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida + relieve, 1 = recolor + relieve, 0 = estilo original.
+  // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
+  const armar = (base, nivel) => {
+    const st = JSON.parse(base);
+    if(nivel >= 1){
       (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // por si quedara algún azul
-      (st.layers || []).forEach(l => {
-        if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
-      });
       const bg = (st.layers || []).find(l => l.type === 'background');
       if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = '#05070a'; }
       st.sources.dem = {type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 14,
@@ -543,7 +547,28 @@ function initMapa(){
         'hillshade-exaggeration': RELIEVE.exag, 'hillshade-shadow-color': RELIEVE.sombra,
         'hillshade-highlight-color': RELIEVE.luz, 'hillshade-accent-color': RELIEVE.acento,
         'hillshade-illumination-direction': RELIEVE.dir, 'hillshade-illumination-anchor': 'map'}});
-      m.setStyle(st);
+    }
+    if(nivel >= 2){
+      (st.layers || []).forEach(l => {
+        if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
+      });
+    }
+    return st;
+  };
+  MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
+    .then(r => r.json())
+    .then(st => {
+      const base = JSON.stringify(st);
+      let nivel = 2;
+      const onErr = e => {
+        const msg = (e && e.error && e.error.message) || '';
+        if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) && !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
+          console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
+          nivel--; m.setStyle(armar(base, nivel), {diff: false});
+        }
+      };
+      m.on('error', onErr);
+      m.setStyle(armar(base, nivel), {diff: false});
       return new Promise(res => {
         const check = () => (m.isStyleLoaded() &&
           (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
