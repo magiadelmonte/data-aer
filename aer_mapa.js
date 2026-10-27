@@ -5,6 +5,7 @@
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
 const TRAJ_DIAS = {};                  // 'yyyy-mm-dd' -> payload del día (trayectos_AAAAMMDD.json)
+const TRAJ_PEDIDOS = {};               // 'yyyy-mm-dd' -> descarga en curso (evita pedir dos veces)
 // Basemap: CARTO Dark Matter (vectorial, plano, con etiquetas; gratis con atribución)
 // Mapa plano y oscuro: sin relieve.
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
@@ -96,8 +97,9 @@ function cargarDia(day, force){
   // Baja el JSON del día (una vez por sesión; `force` refresca el día en curso).
   if(!day) return Promise.resolve(null);
   if(!force && TRAJ_DIAS[day]) return Promise.resolve(TRAJ_DIAS[day]);
-  return fetch('trayectos_' + day.replace(/-/g, '') + '.json?_=' + Date.now(),
-               {cache: 'no-store'})
+  if(!force && TRAJ_PEDIDOS[day]) return TRAJ_PEDIDOS[day];
+  const pedido = fetch('trayectos_' + day.replace(/-/g, '') + '.json?_=' + Date.now(),
+                       {cache: 'no-store'})
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
     .then(j => {
       j = j || {flights: []};
@@ -106,7 +108,10 @@ function cargarDia(day, force){
       TRAJ_DIAS[day] = j;
       marcarFilas();
       return j;
-    });
+    })
+    .finally(() => { delete TRAJ_PEDIDOS[day]; });
+  TRAJ_PEDIDOS[day] = pedido;
+  return pedido;
 }
 
 function cargarHoy(force){
@@ -745,8 +750,7 @@ document.addEventListener('click', e => {
   const a = e.target.closest('a.mlink[data-k]');
   if(!a) return;
   e.preventDefault();
-  if(!trajOf(a.dataset.k)) return;
-  abrirTrayecto(a.dataset.k, a.dataset.modo);
+  abrirTrayecto(a.dataset.k, a.dataset.modo);   // si el día no está, lo baja
 });
 
 // El día en curso se refresca cada 5 min (suma los puntos de los vuelos abiertos);
