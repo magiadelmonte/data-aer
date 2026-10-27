@@ -501,11 +501,14 @@ function dibujarFov(f){
   let ult = null, prev = null;
   for(let i = MFOV_PTS.length - 1; i >= 0; i--){
     const q = MFOV_PTS[i];
-    if(q.x == null) continue;
-    if(!ult){ ult = q; continue; }
-    prev = q; break;
+    if(q.x == null || q.x < 0 || q.x > W || q.y < 0 || q.y > H) continue;
+    ult = q;
+    for(let j = i - 1; j >= 0; j--){
+      if(MFOV_PTS[j].x != null){ prev = MFOV_PTS[j]; break; }
+    }
+    break;
   }
-  if(ult && ult.x >= 0 && ult.x <= W && ult.y >= 0 && ult.y <= H){
+  if(ult){
     const ang = prev ? Math.atan2(ult.y - prev.y, ult.x - prev.x) : -Math.PI / 2;
     const L = 10;
     g.beginPath();
