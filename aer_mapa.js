@@ -11,6 +11,11 @@ const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.j
 // h = matiz destino (0-360; 40 = ocre del sitio) y s = fracción de saturación que se conserva (0 = gris puro, 1 = igual de saturado).
 const TINTE = { h: 40, s: 0.30 };
 const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se considera "azul" y saturación mínima
+// Aclareo del mapa base: se suma esta fracción de la luminosidad que falta hasta el blanco
+// (0 = estilo original; 0,18 ≈ +50 % de brillo percibido en tierras, aguas y rutas).
+// No se aplica a símbolos (etiquetas/íconos) para no perder contraste.
+const ACLARAR = 0.18;
+const MAP_BG = '#242a31';   // fondo del lienzo mientras carga el estilo y color de "tierra" base
 function parseColor(v){
   let m = /^#([0-9a-f]{3,8})$/i.exec(v);
   if(m){
@@ -40,16 +45,26 @@ function hsl2rgb(h, s, l){
   const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
   return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
-function recolorAzules(v){   // recorre arrays/objetos (expresiones, stops) y transforma solo los strings que son colores azules
-  if(Array.isArray(v)) return v.map(recolorAzules);
-  if(v && typeof v === 'object'){ for(const k in v) v[k] = recolorAzules(v[k]); return v; }
-  if(typeof v !== 'string') return v;
+function recolorAzul(v){     // un color: los azules/cianes pasan al tinte del sitio
   const c = parseColor(v); if(!c) return v;
   const [h, s, l] = rgb2hsl(c.r, c.g, c.b);
   if(h < AZUL_H[0] || h > AZUL_H[1] || s < AZUL_S_MIN) return v;
   const n = hsl2rgb(TINTE.h, s * TINTE.s, l);
   return 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + c.a + ')';
 }
+function aclararColor(v){    // un color: sube la luminosidad conservando matiz y saturación
+  const c = parseColor(v); if(!c) return v;
+  const [h, s, l] = rgb2hsl(c.r, c.g, c.b);
+  const n = hsl2rgb(h, s, l + (1 - l) * ACLARAR);
+  return 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + c.a + ')';
+}
+function mapColores(v, fn){  // recorre arrays/objetos (expresiones, stops) y aplica fn solo a strings de color
+  if(Array.isArray(v)) return v.map(x => mapColores(x, fn));
+  if(v && typeof v === 'object'){ for(const k in v) v[k] = mapColores(v[k], fn); return v; }
+  if(typeof v !== 'string') return v;
+  return fn(v);
+}
+function recolorAzules(v){ return mapColores(v, recolorAzul); }
 // Etiquetas del mapa base: "Capilla del Monte" se parte en dos renglones ("Capilla del" / "Monte").
 function partirCapilla(tf){
   let base;
@@ -95,7 +110,7 @@ function initMapa(){
   const m = new maplibregl.Map({
     container: 'mmap',
     style: {version: 8, sources: {}, layers: [
-      {id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}}]},
+      {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]},
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
@@ -104,9 +119,15 @@ function initMapa(){
   const armar = (base, nivel) => {
     const st = JSON.parse(base);
     if(nivel >= 1){
-      (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // por si quedara algún azul
+      (st.layers || []).forEach(l => {
+        if(!l.paint) return;
+        l.paint = recolorAzules(l.paint);               // por si quedara algún azul
+        if(l.type === 'symbol') return;                 // etiquetas/íconos: se dejan como están (contraste)
+        for(const k in l.paint)                          // tierras, aguas, rutas y bordes más visibles
+          if(/color/.test(k)) l.paint[k] = mapColores(l.paint[k], aclararColor);
+      });
       const bg = (st.layers || []).find(l => l.type === 'background');
-      if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = '#05070a'; }
+      if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = MAP_BG; }
     }
     if(nivel >= 2){
       (st.layers || []).forEach(l => {
@@ -147,7 +168,7 @@ function initMapa(){
       m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
         geometry: {type: 'Polygon', coordinates: [sector]}}});
       m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-        paint: {'fill-color': '#fff', 'fill-opacity': .2}});
+        paint: {'fill-color': '#fff', 'fill-opacity': .26}});
       // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
       rings.forEach((r, i) => {
         const pts = [];
@@ -159,8 +180,8 @@ function initMapa(){
           geometry: {type: 'LineString', coordinates: pts}}});
         m.addLayer({id: 'ring' + r, type: 'line', source: 'ring' + r,
           layout: {'line-cap': 'butt', 'line-join': 'round'},
-          paint: {'line-color': '#fff', 'line-opacity': i ? .15 : .21,
-            'line-width': i ? .28 : .38, 'line-dasharray': [16, 16]}});
+          paint: {'line-color': '#fff', 'line-opacity': i ? .23 : .32,
+            'line-width': i ? .42 : .57, 'line-dasharray': [16, 16]}});
         const p = destino(lat, lon, 270, r);
         const el = document.createElement('span');
         el.className = 'mlab';
@@ -175,7 +196,7 @@ function initMapa(){
           geometry: {type: 'LineString', coordinates: [[lon, lat], [q[1], q[0]]]}}});
         m.addLayer({id: 'borde' + az, type: 'line', source: 'borde' + az,
           layout: {'line-cap': 'butt'},
-          paint: {'line-color': '#fff', 'line-opacity': .12, 'line-width': .28, 'line-dasharray': [16, 16]}});
+          paint: {'line-color': '#fff', 'line-opacity': .18, 'line-width': .42, 'line-dasharray': [16, 16]}});
       });
       const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
       const dLon = dLat / Math.cos(lat * Math.PI / 180);
@@ -208,7 +229,7 @@ function dibujarTrayecto(f){
       coordinates: lls.map(p => [p[1], p[0]])}}});
   MMAP.addLayer({id: id, type: 'line', source: id,
     layout: {'line-join': 'round', 'line-cap': 'round'},
-    paint: {'line-color': '#fff', 'line-width': 1.2, 'line-opacity': .95}});
+    paint: {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}});
   MTRAJ_IDS.push(id);
   // Altura en cada vértice (si falta el dato se arrastra el último conocido) para el hover.
   MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1], alt: p[2] != null ? p[2] : altOf(i)}));
