@@ -82,6 +82,7 @@ tbody tr:last-child td { border-bottom: none; }
 .mbox.fov .mfoot { display: none; }
 .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead #mtit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mhead #mtit > * + * { border-left: 1px solid var(--borde-suave); padding-left: 8px; }
 .mhead .mmodo { display: inline-block; padding: 1px 7px; border: 1px solid var(--borde);
   border-radius: 8px; color: var(--acento); font-size: 11px; letter-spacing: .08em; }
 .mhead .mtipo { color: var(--tenue); font-weight: 400; letter-spacing: .05em; font-size: 11px; text-transform: uppercase; }
