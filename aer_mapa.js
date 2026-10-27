@@ -14,8 +14,9 @@ const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se conside
 // Aclareo del mapa base: se suma esta fracción de la luminosidad que falta hasta el blanco
 // (0 = estilo original; 0,14 ≈ tierras #0e0e0e -> #2f2f2f, más del doble de brillo).
 // Los halos de las etiquetas quedan oscuros para no perder contraste.
-const ACLARAR = 0.14;
-const MAP_BG = '#303030';   // fondo del lienzo mientras carga el estilo (= tierra ya aclarada)
+const ACLARAR = 0.02;
+const MAP_BG = '#05070a';   // mismo fondo que data-sat (negro)
+const CELESTE = '#8fb0d8';  // líneas, ríos, rutas y nombres: celeste de las constelaciones de noche
 function parseColor(v){
   let m = /^#([0-9a-f]{3,8})$/i.exec(v);
   if(m){
@@ -129,6 +130,17 @@ function initMapa(){
         for(const k in l.paint){                         // tierras, aguas, rutas, bordes y textos más visibles
           if(!/color/.test(k) || /halo/.test(k)) continue;   // los halos de texto quedan oscuros (contraste)
           l.paint[k] = mapColores(l.paint[k], aclararColor);
+        }
+      });
+      (st.layers || []).forEach(l => {
+        if(l.type === 'line'){
+          l.paint = l.paint || {};
+          l.paint['line-color'] = CELESTE;
+        } else if(l.type === 'symbol'){
+          l.paint = l.paint || {};
+          l.paint['text-color'] = CELESTE;
+          l.paint['text-halo-color'] = 'rgba(5,7,10,.92)';
+          if(l.paint['icon-color'] !== undefined) l.paint['icon-color'] = CELESTE;
         }
       });
       const bg = (st.layers || []).find(l => l.type === 'background');
@@ -323,17 +335,20 @@ function dibujarTrayecto(f){
     for(let j = i; j < lls.length; j++) if(lls[j][4] != null) return lls[j][4];
     return null;
   };
-  // Un tramo por cada parte dentro/fuera del FOV: continua adentro, punteada afuera.
+  // Tramos: adentro continuo (salvo elevación > 27°, que va punteado normal); afuera
+  // punteado al 50% de opacidad (más ligero que la línea normal).
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
+    const alto = tr.pts.reduce((m, p) => (p[4] != null && p[4] > m ? p[4] : m), -Infinity);
+    const dash = !tr.ok || alto > 27;
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: tr.ok
-        ? {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}
-        : {'line-color': '#fff', 'line-width': 1.6, 'line-opacity': .9,
-           'line-dasharray': [.4, 2.2]}});
+      paint: dash
+        ? {'line-color': '#fff', 'line-width': 1.6, 'line-opacity': tr.ok ? 1 : .45,
+           'line-dasharray': [.4, 2.2]}
+        : {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}});
     MTRAJ_IDS.push(id);
   });
   // Altura y altura relativa en cada vértice, para el globo del hover.
@@ -427,7 +442,7 @@ function dibujarFov(f){
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
-  g.fillStyle = '#303030'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
 
   const P = proyector(F, W, H);
   const top = F.el0 + F.fovV / 2, bot = Math.max(0, F.el0 - F.fovV / 2);
@@ -462,8 +477,8 @@ function dibujarFov(f){
     }
   }
 
-  // Contorno del Uritorco (misma silueta y colores que la cámara de SAT).
-  sierraFov(g, F.sierra, W, H, true);
+  // Cresta del Uritorco (la silueta rellena va al final, para tapar lo que pasa detrás).
+  sierraFov(g, F.sierra, W, H, false);
 
   // Trayecto: continuo dentro del FOV, punteado afuera; se corta en el cruce real.
   const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4]]);
@@ -473,26 +488,34 @@ function dibujarFov(f){
     const q = el == null ? null : P(bearing(clat, clon, p[0], p[1]), el);
     return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el};
   });
-  tramosFov(lls).forEach(tr => {
-    g.beginPath(); let pen = false;
-    tr.pts.forEach(p => {
-      if(p[4] == null) return;
-      const q = P(bearing(clat, clon, p[0], p[1]), p[4]);
-      if(!q){ pen = false; return; }
-      if(!pen){ g.moveTo(q[0], q[1]); pen = true; } else g.lineTo(q[0], q[1]);
-    });
-    g.strokeStyle = '#fff';
-    g.lineWidth = tr.ok ? 1.8 : 1.6;
-    g.setLineDash(tr.ok ? [] : [1.5, 4]);
-    g.stroke(); g.setLineDash([]);
+  // En la vista de la cámara el trazo es siempre continuo.
+  g.beginPath(); let pen = false;
+  lls.forEach((p, i) => {
+    const q = MFOV_PTS[i];
+    if(q.x == null){ pen = false; return; }
+    if(!pen){ g.moveTo(q.x, q.y); pen = true; } else g.lineTo(q.x, q.y);
   });
-  // Avión (punto final si cae dentro del encuadre).
-  const ult = MFOV_PTS[MFOV_PTS.length - 1];
-  if(ult && ult.x != null && ult.x >= 0 && ult.x <= W && ult.y >= 0 && ult.y <= H){
-    g.beginPath(); g.arc(ult.x, ult.y, 3.4, 0, Math.PI * 2);
-    g.fillStyle = '#fff'; g.fill();
-    g.strokeStyle = '#000'; g.lineWidth = 1.3; g.stroke();
+  g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.setLineDash([]); g.stroke();
+
+  // Punta del trayecto: delta abierto con la dirección del vuelo (no sólido).
+  let ult = null, prev = null;
+  for(let i = MFOV_PTS.length - 1; i >= 0; i--){
+    const q = MFOV_PTS[i];
+    if(q.x == null) continue;
+    if(!ult){ ult = q; continue; }
+    prev = q; break;
   }
+  if(ult && ult.x >= 0 && ult.x <= W && ult.y >= 0 && ult.y <= H){
+    const ang = prev ? Math.atan2(ult.y - prev.y, ult.x - prev.x) : -Math.PI / 2;
+    const L = 10;
+    g.beginPath();
+    g.moveTo(ult.x - Math.cos(ang - .5) * L, ult.y - Math.sin(ang - .5) * L);
+    g.lineTo(ult.x, ult.y);
+    g.lineTo(ult.x - Math.cos(ang + .5) * L, ult.y - Math.sin(ang + .5) * L);
+    g.strokeStyle = '#fff'; g.lineWidth = 1.6; g.setLineDash([]); g.stroke();
+  }
+  // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
+  sierraFov(g, F.sierra, W, H, true);
   // Marco y rótulo del encuadre.
   g.strokeStyle = 'rgba(180,150,80,.35)'; g.lineWidth = 1; g.strokeRect(.5, .5, W - 1, H - 1);
   g.fillStyle = 'rgba(212,201,176,.62)'; g.font = '11px "Courier New", monospace';
@@ -635,12 +658,12 @@ function tituloModal(f, modo){
       encodeURIComponent(f.country) + '.png" onerror="this.style.display=\'none\'">'
     : '';
   document.getElementById('mtit').innerHTML =
+    '<span class="mmodo">' + (modo === 'fov' ? 'FOV' : 'SAT') + '</span>' +
     (tipo ? '<span class="mtipo">' + esc(tipo) + '</span>' : '') +
     '<span class="mcall">' + esc(f.callsign || '') + '</span>' +
     ((flag || f.registration)
       ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
-  document.getElementById('msub').textContent =
-    fechaHora(f.ts_start_iso) + (modo === 'fov' ? ' · vista FOV' : ' · mapa SAT');
+  document.getElementById('msub').textContent = fechaHora(f.ts_start_iso);
 }
 
 let MODO = 'sat';

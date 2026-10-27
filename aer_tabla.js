@@ -76,20 +76,6 @@ function tipoCell(f){
 const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +
   '<th>País</th><th>Distancia</th><th>Trayecto</th><th>FOV</th><th>Mapas</th></tr>';
 
-// Íconos de la columna "Mapas": satélite (mapa SAT) y cono de cámara (mapa FOV).
-const ICO = {
-  sat: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
-    'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">' +
-    '<rect x="9" y="9" width="6" height="6" rx="1"/>' +
-    '<path d="M9 6 L6 3 M15 6 L18 3 M9 18 L6 21 M15 18 L18 21"/>' +
-    '<rect x="2" y="9" width="4" height="6" rx="1"/>' +
-    '<rect x="18" y="9" width="4" height="6" rx="1"/></svg>',
-  fov: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
-    'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">' +
-    '<circle cx="12" cy="4" r="1.6"/>' +
-    '<path d="M11 6 L5 20 M13 6 L19 20 M5 20 A11 11 0 0 0 19 20"/></svg>',
-};
-
 const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
 const esHoy = iso => dayKey(iso) ===
   (DATA.today || new Date().toLocaleDateString('en-CA'));   // yyyy-mm-dd local
@@ -97,11 +83,11 @@ function mapLinks(f){
   // El mapa se arma solo con los trayectos del día (pasado el día ya no se publica).
   if(!esHoy(f.ts_start_iso)) return '<span class="na">—</span>';
   const k = rowKey(f).replace(/"/g, '&quot;');
-  const link = (modo, ico, txt) => '<a class="mlink" href="#" data-k="' + k +
-    '" data-modo="' + modo + '">' + ICO[ico] + '<span>' + txt + '</span></a>';
+  const link = (modo, txt) => '<a class="mlink" href="#" data-k="' + k +
+    '" data-modo="' + modo + '">' + txt + '</a>';
   // El mapa FOV solo aparece si el vuelo entró al sector azimutal de la cámara
   // (aunque no se haya visto: puede haber pasado por debajo o por encima del FOV).
-  return link('sat', 'sat', 'SAT') + (f.fov_az ? link('fov', 'fov', 'FOV') : '');
+  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '');
 }
 function rowHtml(f, live){
   const flag = f.country
@@ -152,7 +138,7 @@ function renderLive(){
   const body = flights.length
     ? '<table><thead>' + HEAD + '</thead><tbody>' +
         flights.map(f => rowHtml(f, true)).join('') + '</tbody></table>'
-    : '<p class="empty">No hay vuelos sobrevolando Capilla del Monte en este momento</p>';
+    : '<p class="empty">Sin vuelos sobre la zona</p>';
   box.innerHTML = '<section class="day open live">' +
     '<h2 class="day-title">Vuelos actuales<span class="live-dot"></span></h2>' +
     '<div class="day-body">' + body + '</div></section>';

@@ -1,6 +1,7 @@
 /* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
 :root {
-  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #303030; --panel: #05070a;
+  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #05070a; --panel: #05070a;
+  --celeste: #8fb0d8;
   --borde: rgba(180,150,80,.45); --borde-suave: rgba(180,150,80,.25);
   --acento: #b49650; --ok: #4f8a6d; --tenue: #9a917c; --blanco: #fff; --no: #c0574d;
   --fila-alt: rgba(180,150,80,.05); --hover: rgba(180,150,80,.12);
@@ -39,13 +40,13 @@ main { max-width: 1120px; margin: 0 auto; }
 .day-body { display: none; }
 .day.open > .day-body { display: block; }
 .day-title.toggle:focus-visible { outline: 1px solid var(--acento); outline-offset: -3px; }
-.day.live { border-color: var(--ok); }
-.day.live .day-title { color: var(--ok); border-bottom-color: var(--ok); }
-.live-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: 10px; background: var(--ok); animation: livepulse 1.6s ease-out infinite; }
+.day.live { border-color: var(--borde); }
+.day.live .day-title { color: var(--blanco); border-bottom-color: var(--borde); }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: 10px; background: var(--acento); animation: livepulse 1.6s ease-out infinite; }
 @keyframes livepulse {
-  0% { box-shadow: 0 0 0 0 rgba(79,138,109,.75); }
+  0% { box-shadow: 0 0 0 0 rgba(180,150,80,.75); }
   70% { box-shadow: 0 0 0 9px rgba(79,138,109,0); }
-  100% { box-shadow: 0 0 0 0 rgba(79,138,109,0); }
+  100% { box-shadow: 0 0 0 0 rgba(180,150,80,0); }
 }
 table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
 th, td { padding: 6px 12px; text-align: left; white-space: nowrap; }
@@ -67,19 +68,22 @@ tbody tr:last-child td { border-bottom: none; }
 .dir { font-weight: 700; letter-spacing: .02em; }
 /* Columna "Mapas": dos links por vuelo (SAT y, si entró al sector, FOV). */
 .mapas { white-space: nowrap; }
-.mlink { display: inline-flex; align-items: center; gap: 4px; color: var(--acento);
-  text-decoration: none; font-size: 11px; letter-spacing: .04em; }
-.mlink:hover { color: var(--blanco); }
+.mlink { display: inline-block; padding: 1px 8px 2px; border: 1px solid var(--borde);
+  border-radius: 9px; color: var(--acento); text-decoration: none; font-size: 11px;
+  letter-spacing: .05em; transition: background .12s, color .12s; }
+.mlink:hover { background: var(--hover); color: var(--blanco); }
 .mlink.off { color: var(--tenue); opacity: .4; pointer-events: none; }
-.mlink + .mlink { margin-left: 9px; }
-.mlink svg { display: block; }
+.mlink + .mlink { margin-left: 6px; }
 /* ---- Modal de trayectoria ---- */
 #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
 #modal.on { display: flex; }
 .mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
-.mbox.fov { width: min(96vw, 1280px); aspect-ratio: 16 / 9; }
+.mbox.fov { width: min(96vw, 1280px, 170vh); aspect-ratio: 16 / 9; }
+.mbox.fov .mfoot { display: none; }
 .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead #mtit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mhead .mmodo { display: inline-block; padding: 1px 7px; border: 1px solid var(--borde);
+  border-radius: 8px; color: var(--acento); font-size: 11px; letter-spacing: .08em; }
 .mhead .mtipo { color: var(--tenue); font-weight: 400; letter-spacing: .05em; font-size: 11px; text-transform: uppercase; }
 .mhead .mcall { font-size: 15px; }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
