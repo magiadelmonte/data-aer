@@ -1,1 +1,1 @@
-{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "fov": null, "n": 0, "flights": []}
+{"center_lat": -30.8653, "center_lon": -64.4999, "r1_km": 25, "fov": {"az0": 40.0, "az_max": 64.25, "az_min": 15.75, "el0": 15.0, "el_max": 29.25, "el_min": 12.0, "el_terrain": 12.0, "fovH": 48.5, "fovV": 28.5, "radius_km": 65.0, "source": "sat"}, "n": 0, "flights": []}
