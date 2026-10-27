@@ -221,7 +221,11 @@ function render(){
     ? 'Actualizado: ' + DATA.updated_iso + ' · ' + DATA.n +
       ' vuelos · últimos ' + DATA.window_days + ' días'
     : 'Sin vuelos';
-  document.getElementById('foot').innerHTML = meta +
+  // Build de los assets en el pie: permite confirmar de un vistazo si la página
+  // que se está viendo es la última o vino del caché.
+  const ver = (/[?&]v=([^&"]+)/.exec(
+    (document.querySelector('script[src*="aer_mapa"]') || {}).src || '') || [])[1];
+  document.getElementById('foot').innerHTML = meta + (ver ? ' · v' + ver : '') +
     ' · <a href="https://www.youtube.com/@MagiaDelMonte">Observatorio Uritorco</a>';
   marcarFilas();
 }
