@@ -82,7 +82,6 @@ function partirCapilla(tf){
   } else return tf;
   return ['let', 'n', base, ['case', ['==', ['var', 'n'], 'Capilla del Monte'], 'Capilla del\nMonte', ['var', 'n']]];
 }
-const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 let MMAP = null, MMAP_READY = null, MACTUAL = null;
 let MTRAJ_IDS = [], MPLANE = null;
 
@@ -158,18 +157,22 @@ function initMapa(){
       });
     })
     .then(() => {
-      // Porción de pizza (13°-65° de azimut) hasta el radio mayor.
-      const sector = [[lon, lat]];
-      for(let a = AZ_MIN; a <= AZ_MAX; a += 2){
-        const q = destino(lat, lon, a, rings[2]);
-        sector.push([q[1], q[0]]);
+      // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
+      const FOV = TRAJ.fov;
+      if(FOV){
+        const alcance = FOV.radius_km || rings[2];
+        const sector = [[lon, lat]];
+        for(let a = FOV.az_min; a <= FOV.az_max; a += 2){
+          const q = destino(lat, lon, a, alcance);
+          sector.push([q[1], q[0]]);
+        }
+        const q = destino(lat, lon, FOV.az_max, alcance);
+        sector.push([q[1], q[0]], [lon, lat]);
+        m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
+          geometry: {type: 'Polygon', coordinates: [sector]}}});
+        m.addLayer({id: 'sector', type: 'fill', source: 'sector',
+          paint: {'fill-color': '#fff', 'fill-opacity': .26}});
       }
-      const q = destino(lat, lon, AZ_MAX, rings[2]);
-      sector.push([q[1], q[0]], [lon, lat]);
-      m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
-        geometry: {type: 'Polygon', coordinates: [sector]}}});
-      m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-        paint: {'fill-color': '#fff', 'fill-opacity': .26}});
       // Anillos punteados (25 / 50 / 65 km). La distancia de cada uno va apoyada en su propio
       // anillo (paralela a la línea, del lado de adentro), en el norte, donde el texto queda horizontal.
       rings.forEach((r, i) => {
@@ -203,9 +206,9 @@ function initMapa(){
         new maplibregl.Marker({element: el, anchor: 'center'})
           .setLngLat([p[1], p[0]]).addTo(m);
       });
-      // Bordes de la porción azimutal (13° y 65°): líneas punteadas muy sutiles desde el centro hasta el anillo mayor.
-      [AZ_MIN, AZ_MAX].forEach(az => {
-        const q = destino(lat, lon, az, rings[2]);
+      // Bordes de la porción azimutal: líneas punteadas desde el centro hasta el alcance del FOV.
+      (FOV ? [FOV.az_min, FOV.az_max] : []).forEach(az => {
+        const q = destino(lat, lon, az, FOV.radius_km || rings[2]);
         m.addSource('borde' + az, {type: 'geojson', data: {type: 'Feature',
           geometry: {type: 'LineString', coordinates: [[lon, lat], [q[1], q[0]]]}}});
         m.addLayer({id: 'borde' + az, type: 'line', source: 'borde' + az,
@@ -229,22 +232,44 @@ function limpiarTrayecto(){
   if(MPLANE){ MPLANE.remove(); MPLANE = null; }
 }
 
+// Separa el trayecto en tramos según el FOV de altura de cada punto (`el_fov`, 0/1).
+// Los dos tramos comparten el punto de cambio, así la línea no queda cortada.
+function tramosFov(lls){
+  const out = [];
+  let run = [lls[0]], ok = lls[0][3] !== 0;
+  for(let i = 1; i < lls.length; i++){
+    const ok2 = lls[i][3] !== 0;
+    if(ok2 === ok){ run.push(lls[i]); continue; }
+    run.push(lls[i]);
+    out.push({ok: ok, pts: run});
+    run = [lls[i]];
+    ok = ok2;
+  }
+  out.push({ok: ok, pts: run});
+  return out.filter(t => t.pts.length > 1);
+}
+
 function dibujarTrayecto(f){
   limpiarTrayecto();
-  const lls = f.path.map(p => [p[0], p[1], p[2]]);
+  const lls = f.path.map(p => [p[0], p[1], p[2], p[3]]);
   const altOf = i => {
     for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
     for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
     return 0;
   };
-  const id = 'traj0';
-  MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
-    geometry: {type: 'LineString',
-      coordinates: lls.map(p => [p[1], p[0]])}}});
-  MMAP.addLayer({id: id, type: 'line', source: id,
-    layout: {'line-join': 'round', 'line-cap': 'round'},
-    paint: {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}});
-  MTRAJ_IDS.push(id);
+  // Un tramo por cada parte con/sin FOV de altura: continua adentro, punteada afuera.
+  tramosFov(lls).forEach((tr, i) => {
+    const id = 'traj' + i;
+    MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
+      geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
+    MMAP.addLayer({id: id, type: 'line', source: id,
+      layout: {'line-join': 'round', 'line-cap': 'round'},
+      paint: tr.ok
+        ? {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}
+        : {'line-color': '#fff', 'line-width': 1.6, 'line-opacity': .9,
+           'line-dasharray': [.4, 2.2]}});
+    MTRAJ_IDS.push(id);
+  });
   // Altura en cada vértice (si falta el dato se arrastra el último conocido) para el hover.
   MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1], alt: p[2] != null ? p[2] : altOf(i)}));
   const hasAlt = lls.some(p => p[2] != null);
