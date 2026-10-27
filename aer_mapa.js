@@ -282,12 +282,11 @@ function tramosFov(lls){
   const inside = r => Math.abs(r) <= half;   // sector azimutal (la altura se evalúa aparte)
   const dentro = (r, d) => inside(r) && d <= dmax;
   const out = [];
-  const push = (ok, high, pts) => {   // no mezclar tramos que cambian de estilo
+  const push = (ok, pts) => {
     if(pts.length < 2) return;
     const last = out[out.length - 1];
-    if(last && last.ok === ok && last.high === high)
-      last.pts = last.pts.concat(pts.slice(1));
-    else out.push({ok: ok, high: high, pts: pts});
+    if(last && last.ok === ok) last.pts = last.pts.concat(pts.slice(1));
+    else out.push({ok: ok, pts: pts});
   };
   for(let i = 0; i < lls.length - 1; i++){
     const a = lls[i], b = lls[i + 1], sa = S[i], sb = S[i + 1];
@@ -302,7 +301,6 @@ function tramosFov(lls){
     addT(sa.r, sb.r, -half);
     addT(sa.r, sb.r, half);
     addT(sa.d, sb.d, dmax);
-    addT(sa.e, sb.e, 26);              // corte en 26°: arriba va punteado
     ts.sort((x, y) => x - y);
     const lim = ts.filter((x, j) => j === 0 || x - ts[j - 1] > 1e-7);
     const at = t => {
@@ -313,10 +311,9 @@ function tramosFov(lls){
     };
     for(let j = 0; j < lim.length - 1; j++){
       const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
-      const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
       const r = sa.r + tm * (sb.r - sa.r);
       const d = sa.d + tm * (sb.d - sa.d);
-      push(dentro(r, d), e != null && e > 26, [at(t0), at(t1)]);
+      push(dentro(r, d), [at(t0), at(t1)]);
     }
   }
   return out;
@@ -335,19 +332,16 @@ function dibujarTrayecto(f){
     for(let j = i; j < lls.length; j++) if(lls[j][4] != null) return lls[j][4];
     return null;
   };
-  // Tramos: adentro continuo (salvo elevación > 26°, que va punteado normal); afuera
-  // punteado al 50% de opacidad (más ligero que la línea normal).
+  // Todo el trayecto va punteado, de principio a fin. Fuera del FOV el punteado
+  // es un 50% más liviano; adentro, opacidad normal (sin importar la elevación).
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
-    const dash = !tr.ok || tr.high;     // adentro sólido; >26° punteado normal; afuera liviano
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: dash
-        ? {'line-color': '#fff', 'line-width': 1.6, 'line-opacity': tr.ok ? 1 : .45,
-           'line-dasharray': [.4, 2.2]}
-        : {'line-color': '#fff', 'line-width': 1.8, 'line-opacity': 1}});
+      paint: {'line-color': '#fff', 'line-width': 1.6,
+        'line-opacity': tr.ok ? 1 : .45, 'line-dasharray': [.4, 2.2]}});
     MTRAJ_IDS.push(id);
   });
   // Altura y altura relativa en cada vértice, para el globo del hover.
