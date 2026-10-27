@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <title>Observatorio Uritorco</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <style>
   /* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
   :root {
@@ -85,7 +85,8 @@
   .mx { margin-left: auto; padding: 3px 9px; background: none; border: 1px solid var(--borde-suave); color: var(--tenue); font: inherit; font-size: 14px; line-height: 1.1; cursor: pointer; }
   .mx:hover { color: var(--blanco); border-color: var(--acento); }
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
-  .mlab { color: var(--acento); font-size: 11px; letter-spacing: .06em; text-shadow: 0 0 4px #000; }
+  .mlab { color: #fff; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
+  #mmap canvas { outline: none; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
   .mlegend { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 10px; letter-spacing: .04em; color: var(--tenue); }
   .mlegend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -380,10 +381,9 @@ pollReportes();
 // ============================================================
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
-const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
-const ESRI_DARK = ESRI + 'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
-const ESRI_RELIEF = ESRI + 'World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}';
-const ESRI_LABELS = ESRI + 'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
+// Basemap vectorial "Nova" de Esri (estilo público, sin API key).
+const NOVA_STYLE = 'https://cdn.arcgis.com/sharing/rest/content/items/75f4dfdff19e445395653121a95a85db/resources/styles/root.json';
+const NOVA_TILES = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf';
 const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   airliner:   { color: '#e8e8e8', rot: true,
@@ -435,7 +435,8 @@ const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   unknown:    { color: '#8a8a8a', rot: false,
     svg: '<text x="12" y="17.2" text-anchor="middle" font-size="16" font-weight="700" font-family="monospace" fill="currentColor">?</text>' },
 };
-let MMAP = null, MTRAJ = null;
+let MMAP = null, MMAP_READY = null, MACTUAL = null;
+let MTRAJ_IDS = [], MPLANE = null;
 
 function marcarFilas(){
   document.querySelectorAll('#days tr[data-k], #live tr[data-k]').forEach(tr => {
@@ -458,44 +459,111 @@ function destino(lat, lon, brg, km){
 function initMapa(){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
-  const m = L.map('mmap', {zoomControl: false, attributionControl: false,
-    preferCanvas: true, zoomSnap: 0.1, zoomDelta: 0.5});
-  // Fondo: mapa físico oscurecido.
-  L.tileLayer(ESRI_RELIEF, {maxZoom: 13}).addTo(m);
-  m.getPane('tilePane').style.filter =
-    'sepia(.4) saturate(.85) brightness(.32) contrast(1.35) hue-rotate(-8deg)';
-  // Etiquetas: texto claro sin halo (el halo invertido se descarta con "screen").
-  m.createPane('labels');
-  m.getPane('labels').style.zIndex = 450;
-  m.getPane('labels').style.pointerEvents = 'none';
-  m.getPane('labels').style.mixBlendMode = 'screen';
-  m.getPane('labels').style.filter =
-    'grayscale(1) invert(1) brightness(2) contrast(2.2)';
-  L.tileLayer(ESRI_LABELS, {pane: 'labels', maxZoom: 13}).addTo(m);
-  const c = [lat, lon];
-  // Porción de pizza (13°-65° de azimut) hasta el radio mayor: capa más oscura.
-  const sector = [c];
-  for(let a = AZ_MIN; a <= AZ_MAX; a += 2) sector.push(destino(lat, lon, a, rings[2]));
-  sector.push(destino(lat, lon, AZ_MAX, rings[2]));
-  L.polygon(sector, {color: 'transparent', weight: 0, fillColor: '#000',
-    fillOpacity: .3, interactive: false}).addTo(m);
-  // Anillos punteados en blanco (25 / 50 / 65 km).
-  rings.forEach((r, i) => {
-    L.circle(c, {radius: r * 1000, color: '#fff', weight: i ? 0.28 : 0.38,
-      opacity: i ? .28 : .4, dashArray: '6,6', fill: false,
-      interactive: false}).addTo(m);
-    const ang = Math.PI;      // etiqueta de distancia hacia el oeste
-    const dLat = (r * 1000 / 6371000) * (180 / Math.PI);
-    const dLon = dLat / Math.cos(lat * Math.PI / 180);
-    L.marker([lat + dLat * Math.sin(ang), lon + dLon * Math.cos(ang)], {
-      interactive: false,
-      icon: L.divIcon({className: '', html: '<span class="mlab">' + r + ' km</span>',
-                       iconSize: [44, 12]}),
-    }).addTo(m);
+  const m = new maplibregl.Map({
+    container: 'mmap',
+    style: {version: 8, sources: {}, layers: [
+      {id: 'fondo', type: 'background', paint: {'background-color': '#011222'}}]},
+    center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
+    fadeDuration: 0,
   });
-  MTRAJ = L.layerGroup().addTo(m);
-  m.fitBounds(L.latLng(lat, lon).toBounds(rings[2] * 2000), {padding: [18, 18]});
+  MMAP_READY = fetch(NOVA_STYLE, {cache: 'force-cache'})
+    .then(r => r.json())
+    .then(st => {
+      st.sources.esri = {type: 'vector', tiles: [NOVA_TILES],
+        minzoom: 0, maxzoom: 16};
+      m.setStyle(st);
+      return new Promise(res => m.once('style.load', res));
+    })
+    .then(() => {
+      // Porción de pizza (13°-65° de azimut) hasta el radio mayor.
+      const sector = [[lon, lat]];
+      for(let a = AZ_MIN; a <= AZ_MAX; a += 2){
+        const q = destino(lat, lon, a, rings[2]);
+        sector.push([q[1], q[0]]);
+      }
+      const q = destino(lat, lon, AZ_MAX, rings[2]);
+      sector.push([q[1], q[0]], [lon, lat]);
+      m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
+        geometry: {type: 'Polygon', coordinates: [sector]}}});
+      m.addLayer({id: 'sector', type: 'fill', source: 'sector',
+        paint: {'fill-color': '#000', 'fill-opacity': .3}});
+      // Anillos punteados (25 / 50 / 65 km) y etiqueta al oeste.
+      rings.forEach((r, i) => {
+        const pts = [];
+        for(let a = 0; a <= 360; a += 2){
+          const p = destino(lat, lon, a, r);
+          pts.push([p[1], p[0]]);
+        }
+        m.addSource('ring' + r, {type: 'geojson', data: {type: 'Feature',
+          geometry: {type: 'LineString', coordinates: pts}}});
+        m.addLayer({id: 'ring' + r, type: 'line', source: 'ring' + r,
+          layout: {'line-cap': 'butt', 'line-join': 'round'},
+          paint: {'line-color': '#fff', 'line-opacity': i ? .3 : .42,
+            'line-width': i ? .28 : .38, 'line-dasharray': [16, 16]}});
+        const p = destino(lat, lon, 270, r);
+        const el = document.createElement('span');
+        el.className = 'mlab';
+        el.textContent = r + ' km';
+        new maplibregl.Marker({element: el, anchor: 'center'})
+          .setLngLat([p[1], p[0]]).addTo(m);
+      });
+      const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
+      const dLon = dLat / Math.cos(lat * Math.PI / 180);
+      m.fitBounds([[lon - dLon, lat - dLat], [lon + dLon, lat + dLat]],
+                  {padding: 18, duration: 0});
+    });
   return m;
+}
+
+function limpiarTrayecto(){
+  MTRAJ_IDS.forEach(id => {
+    if(MMAP.getLayer(id)) MMAP.removeLayer(id);
+    if(MMAP.getSource(id)) MMAP.removeSource(id);
+  });
+  MTRAJ_IDS = [];
+  if(MPLANE){ MPLANE.remove(); MPLANE = null; }
+}
+
+function dibujarTrayecto(f){
+  limpiarTrayecto();
+  const lls = f.path.map(p => [p[0], p[1], p[2]]);
+  const altOf = i => {
+    for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
+    for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
+    return 0;
+  };
+  const addRun = (pts, color) => {
+    const id = 'traj' + MTRAJ_IDS.length;
+    MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
+      geometry: {type: 'LineString',
+        coordinates: pts.map(p => [p[1], p[0]])}}});
+    MMAP.addLayer({id: id, type: 'line', source: id,
+      layout: {'line-join': 'round', 'line-cap': 'round'},
+      paint: {'line-color': color, 'line-width': 2.4, 'line-opacity': .95}});
+    MTRAJ_IDS.push(id);
+  };
+  let run = [lls[0]], runColor = colorAlt(altOf(0));
+  for(let i = 1; i < lls.length; i++){
+    const c = colorAlt(altOf(i));
+    if(c === runColor){ run.push(lls[i]); continue; }
+    run.push(lls[i]);
+    addRun(run, runColor);
+    run = [lls[i]]; runColor = c;
+  }
+  if(run.length > 1) addRun(run, runColor);
+  // Punto de partida.
+  MMAP.addSource('trajstart', {type: 'geojson', data: {type: 'Feature',
+    geometry: {type: 'Point', coordinates: [lls[0][1], lls[0][0]]}}});
+  MMAP.addLayer({id: 'trajstart', type: 'circle', source: 'trajstart',
+    paint: {'circle-radius': 4, 'circle-color': '#000',
+      'circle-stroke-color': '#4f8a6d', 'circle-stroke-width': 2}});
+  MTRAJ_IDS.push('trajstart');
+  // Avión en el último punto, orientado al rumbo final.
+  const brg = rumboFinal(lls);
+  const el = document.createElement('div');
+  el.innerHTML = iconHTML(f.icon, brg);
+  MPLANE = new maplibregl.Marker({element: el, anchor: 'center'})
+    .setLngLat([lls[lls.length - 1][1], lls[lls.length - 1][0]]).addTo(MMAP);
 }
 
 // Bandas de altitud (msnm) para el color del trayecto y la escala del título.
@@ -538,34 +606,12 @@ function abrirTrayecto(k){
   document.getElementById('modal').classList.add('on');
   document.body.style.overflow = 'hidden';
   if(!MMAP) MMAP = initMapa();
-  MMAP.invalidateSize();
-  MTRAJ.clearLayers();
-  const lls = f.path.map(p => [p[0], p[1], p[2]]);
-  // Trayectoria coloreada por altitud (tramos por banda).
-  const altOf = i => {
-    for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
-    for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
-    return 0;
-  };
-  let run = [lls[0]], runColor = colorAlt(altOf(0));
-  for(let i = 1; i < lls.length; i++){
-    const c = colorAlt(altOf(i));
-    if(c === runColor){ run.push(lls[i]); continue; }
-    run.push(lls[i]);
-    L.polyline(run, {color: runColor, weight: 2.4, opacity: .95,
-      interactive: false}).addTo(MTRAJ);
-    run = [lls[i]]; runColor = c;
-  }
-  if(run.length > 1)
-    L.polyline(run, {color: runColor, weight: 2.4, opacity: .95,
-      interactive: false}).addTo(MTRAJ);
-  L.circleMarker(lls[0], {radius: 4, color: '#4f8a6d', weight: 2, fillColor: '#000',
-    fillOpacity: 1, interactive: false}).addTo(MTRAJ);
-  const brg = rumboFinal(lls);
-  L.marker(lls[lls.length - 1], {interactive: false, zIndexOffset: 1000,
-    icon: L.divIcon({className: '', iconSize: [30, 30], iconAnchor: [15, 15],
-      html: iconHTML(f.icon, brg)}),
-  }).addTo(MTRAJ);
+  MACTUAL = f;
+  MMAP_READY.then(() => {
+    if(MACTUAL !== f) return;
+    MMAP.resize();
+    dibujarTrayecto(f);
+  });
 }
 
 function cerrarModal(){
