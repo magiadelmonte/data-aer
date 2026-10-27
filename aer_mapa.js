@@ -85,11 +85,16 @@ function partirCapilla(tf){
 let MMAP = null, MMAP_READY = null, MACTUAL = null;
 let MTRAJ_IDS = [], MPLANE = null;
 
+function trajOf(k){                      // vuelo cerrado (trayectos.json) o en curso (r1_live.json)
+  return TKEY[k] || (typeof LIVE_TKEY !== 'undefined' && LIVE_TKEY[k]) || null;
+}
 function marcarFilas(){
-  document.querySelectorAll('#days tr[data-k], #live tr[data-k]').forEach(tr => {
-    const has = !!TKEY[tr.dataset.k];
-    tr.classList.toggle('has-traj', has);
-    tr.title = has ? 'clic para ver el mapa del trayecto' : '';
+  document.querySelectorAll('.mlink[data-k]').forEach(a => {
+    const has = !!trajOf(a.dataset.k);
+    a.classList.toggle('off', !has);
+    a.title = has
+      ? (a.dataset.modo === 'fov' ? 'Mapa del sector FOV' : 'Mapa del trayecto')
+      : 'Sin trayecto disponible';
   });
 }
 
@@ -215,10 +220,7 @@ function initMapa(){
           layout: {'line-cap': 'butt'},
           paint: {'line-color': '#fff', 'line-opacity': .18, 'line-width': .42, 'line-dasharray': [16, 16]}});
       });
-      const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
-      const dLon = dLat / Math.cos(lat * Math.PI / 180);
-      m.fitBounds([[lon - dLon, lat - dLat], [lon + dLon, lat + dLat]],
-                  {padding: 30, duration: 0});   // margen para los cardinales del anillo exterior
+      encuadrar(MODO);
     });
   return m;
 }
@@ -421,11 +423,55 @@ function rumboFinal(lls){
   return 0;
 }
 
-function abrirTrayecto(k){
-  const f = TKEY[k];
+// Encuadre según el mapa: SAT = los tres anillos completos; FOV = solo el sector
+// de la cámara (az_min..az_max hasta su alcance) con el trayecto adentro.
+function encuadrar(modo){
+  if(!MMAP || TRAJ.center_lat == null) return;
+  const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
+  const rings = TRAJ.rings_km || [25, 50, 65];
+  const F = TRAJ.fov;
+  if(modo === 'fov' && F){
+    const r = F.radius_km || rings[2];
+    let x0 = lon, x1 = lon, y0 = lat, y1 = lat;
+    for(let a = F.az_min; a <= F.az_max; a += 2){
+      const q = destino(lat, lon, a, r);
+      x0 = Math.min(x0, q[1]); x1 = Math.max(x1, q[1]);
+      y0 = Math.min(y0, q[0]); y1 = Math.max(y1, q[0]);
+    }
+    MMAP.fitBounds([[x0, y0], [x1, y1]], {padding: 34, duration: 0});
+    return;
+  }
+  const dLat = (rings[2] * 1000 / 6371000) * (180 / Math.PI);
+  const dLon = dLat / Math.cos(lat * Math.PI / 180);
+  MMAP.fitBounds([[lon - dLon, lat - dLat], [lon + dLon, lat + dLat]],
+                 {padding: 30, duration: 0});   // margen para los cardinales del anillo exterior
+}
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
+  c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+// Título del modal: tipo de vuelo · vuelo · bandera + matrícula · fecha y hora.
+function tituloModal(f, modo){
+  const tipo = f.ac_type_label || f.type_label || '';
+  const flag = f.country
+    ? '<img class="flag" src="https://flagcdn.com/w40/' +
+      encodeURIComponent(f.country) + '.png" onerror="this.style.display=\'none\'">'
+    : '';
+  document.getElementById('mtit').innerHTML =
+    (tipo ? '<span class="mtipo">' + esc(tipo) + '</span>' : '') +
+    '<span class="mcall">' + esc(f.callsign || '') + '</span>' +
+    ((flag || f.registration)
+      ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
+  document.getElementById('msub').textContent =
+    fechaHora(f.ts_start_iso) + (modo === 'fov' ? ' · mapa FOV' : ' · mapa SAT');
+}
+
+let MODO = 'sat';
+function abrirTrayecto(k, modo){
+  const f = trajOf(k);
   if(!f || TRAJ.center_lat == null) return;
-  document.getElementById('mtit').textContent = f.callsign || '';
-  document.getElementById('msub').textContent = hourMin(f.ts_start_iso) + ' hs';
+  MODO = modo === 'fov' ? 'fov' : 'sat';
+  tituloModal(f, MODO);
   document.getElementById('modal').classList.add('on');
   document.body.style.overflow = 'hidden';
   if(!MMAP) MMAP = initMapa();
@@ -434,6 +480,7 @@ function abrirTrayecto(k){
     if(MACTUAL !== f) return;
     MMAP.resize();
     dibujarTrayecto(f);
+    encuadrar(MODO);
   });
 }
 
@@ -449,8 +496,11 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape') cerrarModal();
 });
 document.addEventListener('click', e => {
-  const tr = e.target.closest('tr[data-k]');
-  if(tr && TKEY[tr.dataset.k]) abrirTrayecto(tr.dataset.k);
+  const a = e.target.closest('a.mlink[data-k]');
+  if(!a) return;
+  e.preventDefault();
+  if(!trajOf(a.dataset.k)) return;
+  abrirTrayecto(a.dataset.k, a.dataset.modo);
 });
 
 function loadTrayectos(){

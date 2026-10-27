@@ -25,6 +25,10 @@ function hourMin(iso){
   const m = /T(\d{2}):(\d{2})/.exec(iso || '');
   return m ? m[1] + ':' + m[2] : '';
 }
+function fechaHora(iso){                 // 27/10/2026 12:42 (hora local del vuelo)
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso || '');
+  return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : '';
+}
 function dayKey(iso){ return (iso || '').slice(0, 10); }
 function fmtDay(key){
   if(key === DATA.today) return 'HOY';
@@ -43,10 +47,10 @@ function capillaInfo(f){
     const d = distKm(p.lat, p.lon, DATA.center_lat, DATA.center_lon);
     if(d < best) best = d;
   }
-  const km = best.toFixed(1) + ' km';
-  if(best <= DATA.r1_km)
-    return '<span class="mark yes">✓</span> <span class="yes">' + km + '</span>';
-  return '<span class="mark no">✗</span> <span class="no">' + km + '</span>';
+  const km = best.toLocaleString('es-AR',
+    {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' km';
+  return '<span class="' + (best <= DATA.r1_km ? 'yes' : 'no') + '" title="' +
+    (best <= DATA.r1_km ? 'dentro de R1' : 'fuera de R1') + '">' + km + '</span>';
 }
 function durHMS(sec){
   if(sec == null) return '';
@@ -69,10 +73,32 @@ function tipoCell(f){
   return tipo;
 }
 
-const HEAD = '<tr><th>Hora</th><th>Vuelo</th><th>Matrícula</th><th>Aeronave</th>' +
-  '<th>País</th><th>Visible</th><th>FOV</th><th>Trayecto</th><th>Duración</th></tr>';
+const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +
+  '<th>País</th><th>Distancia</th><th>Trayecto</th><th>FOV</th><th>Mapas</th></tr>';
+
+// Íconos de la columna "Mapas": satélite (mapa SAT) y cono de cámara (mapa FOV).
+const ICO = {
+  sat: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">' +
+    '<rect x="9" y="9" width="6" height="6" rx="1"/>' +
+    '<path d="M9 6 L6 3 M15 6 L18 3 M9 18 L6 21 M15 18 L18 21"/>' +
+    '<rect x="2" y="9" width="4" height="6" rx="1"/>' +
+    '<rect x="18" y="9" width="4" height="6" rx="1"/></svg>',
+  fov: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">' +
+    '<circle cx="12" cy="4" r="1.6"/>' +
+    '<path d="M11 6 L5 20 M13 6 L19 20 M5 20 A11 11 0 0 0 19 20"/></svg>',
+};
 
 const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
+function mapLinks(f){
+  const k = rowKey(f).replace(/"/g, '&quot;');
+  const link = (modo, ico, txt) => '<a class="mlink" href="#" data-k="' + k +
+    '" data-modo="' + modo + '">' + ICO[ico] + '<span>' + txt + '</span></a>';
+  // El mapa FOV solo aparece si el vuelo entró al sector azimutal de la cámara
+  // (aunque no se haya visto: puede haber pasado por debajo o por encima del FOV).
+  return link('sat', 'sat', 'SAT') + (f.fov_az ? link('fov', 'fov', 'FOV') : '');
+}
 function rowHtml(f, live){
   const flag = f.country
     ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
@@ -81,16 +107,16 @@ function rowHtml(f, live){
   const dur = live
     ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
     : durHMS(f.duration_sec);
-  return '<tr data-k="' + rowKey(f).replace(/"/g, '&quot;') + '">' +
+  return '<tr>' +
     '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
+    '<td class="dur">' + dur + '</td>' +
     '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
-    '<td>' + (f.registration || '') + '</td>' +
     '<td>' + tipoCell(f) + '</td>' +
     '<td>' + flag + pais + '</td>' +
     '<td>' + capillaInfo(f) + '</td>' +
-    '<td class="fov">' + (f.fov ? '<span class="mark yes">✓</span>' : '') + '</td>' +
     '<td class="dir">' + orientInfo(f) + '</td>' +
-    '<td class="dur">' + dur + '</td>' +
+    '<td class="fov">' + (f.fov ? '<span class="mark yes">✓</span>' : '') + '</td>' +
+    '<td class="mapas">' + mapLinks(f) + '</td>' +
     '</tr>';
 }
 
@@ -103,9 +129,22 @@ function daySection(key, flights, open){
 }
 
 let liveData = { flights: [] };
+let LIVE_TKEY = {};                      // vuelos en curso -> trayecto para el mapa
+function liveTrayectos(flights){
+  const out = {};
+  flights.forEach(f => {
+    out[rowKey(f)] = {k: rowKey(f), callsign: f.callsign, ts_start_iso: f.ts_start_iso,
+      ac_type_label: f.ac_type_label, registration: f.registration, country: f.country,
+      icon: f.icon || 'airliner',
+      path: (f.path || []).map(p => [p.lat, p.lon, p.alt_m,
+        p.in_fov === false ? 0 : 1, p.elev_deg])};
+  });
+  return out;
+}
 function renderLive(){
   const box = document.getElementById('live');
   const flights = (liveData && liveData.flights) || [];
+  LIVE_TKEY = liveTrayectos(flights);
   const body = flights.length
     ? '<table><thead>' + HEAD + '</thead><tbody>' +
         flights.map(f => rowHtml(f, true)).join('') + '</tbody></table>'
