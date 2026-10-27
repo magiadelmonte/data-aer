@@ -356,6 +356,182 @@ function dibujarTrayecto(f){
     .setLngLat([lls[lls.length - 1][1], lls[lls.length - 1][0]]).addTo(MMAP);
 }
 
+
+// ============================================================
+// Mapa FOV: la vista de la cámara (encuadre 16:9), no el mapa de arriba.
+// Mismo contorno de sierras que sat_camara.html y el trayecto proyectado en
+// azimut/elevación desde el observatorio: cada punto cae donde lo vería la cámara.
+// ============================================================
+let MFOV_ON = false, MFOV_PTS = null, MFOV_TIP = null, MFOV_CV = null;
+
+function camBasis(F){                    // vectores de la cámara (ENU), igual que SAT
+  const ca = F.az0 * Math.PI / 180, ce = F.el0 * Math.PI / 180;
+  const FWD = [Math.sin(ca) * Math.cos(ce), Math.cos(ca) * Math.cos(ce), Math.sin(ce)];
+  const RGT = [Math.cos(ca), -Math.sin(ca), 0];
+  const UPV = [RGT[1] * FWD[2] - RGT[2] * FWD[1],
+               RGT[2] * FWD[0] - RGT[0] * FWD[2],
+               RGT[0] * FWD[1] - RGT[1] * FWD[0]];
+  return {FWD: FWD, RGT: RGT, UPV: UPV};
+}
+function proyector(F, W, H){
+  const B = camBasis(F);
+  const f = (W / 2) / Math.tan(F.fovH / 2 * Math.PI / 180);
+  return (az, el) => {                  // az/el (grados) -> píxel del encuadre (o null)
+    const a = az * Math.PI / 180, e = el * Math.PI / 180;
+    const v = [Math.sin(a) * Math.cos(e), Math.cos(a) * Math.cos(e), Math.sin(e)];
+    const z = v[0] * B.FWD[0] + v[1] * B.FWD[1] + v[2] * B.FWD[2];
+    if(z <= 0.02) return null;
+    const x = v[0] * B.RGT[0] + v[1] * B.RGT[1];
+    const y = v[0] * B.UPV[0] + v[1] * B.UPV[1] + v[2] * B.UPV[2];
+    return [W / 2 + f * x / z, H / 2 - f * y / z];
+  };
+}
+const elDe = (lls, i) => {              // elevación del vértice; si falta, la del más cercano
+  for(let j = i; j >= 0; j--) if(lls[j][4] != null) return lls[j][4];
+  for(let j = i; j < lls.length; j++) if(lls[j][4] != null) return lls[j][4];
+  return null;
+};
+
+function sierraFov(g, S, W, H, conRelleno){
+  if(!S || !S.pts || S.pts.length < 2) return;
+  const sx = W / (S.ancho || 1920), sy = H / (S.alto || 1080);
+  const xmax = (S.ancho || 1920) - 1, paso = S.paso || 8;
+  const trazo = () => {
+    g.beginPath();
+    S.pts.forEach((v, i) => {
+      const x = Math.min(i * paso, xmax) * sx, y = v * sy;
+      if(i) g.lineTo(x, y); else g.moveTo(x, y);
+    });
+  };
+  if(conRelleno){
+    trazo(); g.lineTo(W, H); g.lineTo(0, H); g.closePath();
+    g.fillStyle = 'rgba(5,7,10,' + (S.opacidad == null ? .7 : S.opacidad) + ')';
+    g.fill();
+  }
+  trazo(); g.strokeStyle = 'rgba(139,26,26,.9)'; g.lineWidth = 2;
+  g.setLineDash([]); g.stroke();
+}
+
+function dibujarFov(f){
+  const cv = document.getElementById('mfov'), caja = document.getElementById('mfovbox');
+  if(!cv || !caja) return;
+  const F = TRAJ.fov;
+  const dispW = caja.clientWidth, dispH = caja.clientHeight;
+  if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
+  // Lienzo con la relación exacta del encuadre (tan H / tan V), centrado en la caja.
+  const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
+  const W = Math.min(dispW, dispH * ratio), H = W / ratio;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = '#303030'; g.fillRect(0, 0, W, H);
+
+  const P = proyector(F, W, H);
+  const top = F.el0 + F.fovV / 2, bot = Math.max(0, F.el0 - F.fovV / 2);
+  const azL = F.az0 - F.fovH / 2, azR = F.az0 + F.fovH / 2;
+  g.font = '11px "Courier New", monospace';
+
+  // Grilla: azimut cada 10°, elevación cada 5°.
+  for(let az = Math.ceil(azL / 10) * 10; az <= azR; az += 10){
+    g.beginPath();
+    for(let el = bot; el <= top; el += 1){
+      const p = P(az, el);
+      if(!p) continue;
+      if(el === bot) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
+    }
+    g.strokeStyle = 'rgba(212,201,176,.14)'; g.lineWidth = 1; g.stroke();
+    const lp = P(az, bot + 1.5);
+    if(lp && lp[0] > 16 && lp[0] < W - 26){
+      g.fillStyle = 'rgba(212,201,176,.45)'; g.fillText(az + '°', lp[0] + 3, H - 7);
+    }
+  }
+  for(let el = Math.ceil(bot / 5) * 5; el <= top; el += 5){
+    g.beginPath();
+    for(let az = azL; az <= azR; az += 1){
+      const p = P(az, el);
+      if(!p) continue;
+      if(az === azL) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
+    }
+    g.strokeStyle = 'rgba(212,201,176,.14)'; g.lineWidth = 1; g.stroke();
+    const lp = P(azL + 1.2, el);
+    if(lp && lp[1] > 12 && lp[1] < H - 16){
+      g.fillStyle = 'rgba(212,201,176,.45)'; g.fillText(el + '°', 5, lp[1] - 3);
+    }
+  }
+
+  // Contorno del Uritorco (misma silueta y colores que la cámara de SAT).
+  sierraFov(g, F.sierra, W, H, true);
+
+  // Trayecto: continuo dentro del FOV, punteado afuera; se corta en el cruce real.
+  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4]]);
+  const clat = TRAJ.center_lat, clon = TRAJ.center_lon;
+  MFOV_PTS = lls.map((p, i) => {
+    const el = elDe(lls, i);
+    const q = el == null ? null : P(bearing(clat, clon, p[0], p[1]), el);
+    return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el};
+  });
+  tramosFov(lls).forEach(tr => {
+    g.beginPath(); let pen = false;
+    tr.pts.forEach(p => {
+      if(p[4] == null) return;
+      const q = P(bearing(clat, clon, p[0], p[1]), p[4]);
+      if(!q){ pen = false; return; }
+      if(!pen){ g.moveTo(q[0], q[1]); pen = true; } else g.lineTo(q[0], q[1]);
+    });
+    g.strokeStyle = '#fff';
+    g.lineWidth = tr.ok ? 1.8 : 1.6;
+    g.setLineDash(tr.ok ? [] : [1.5, 4]);
+    g.stroke(); g.setLineDash([]);
+  });
+  // Avión (punto final si cae dentro del encuadre).
+  const ult = MFOV_PTS[MFOV_PTS.length - 1];
+  if(ult && ult.x != null && ult.x >= 0 && ult.x <= W && ult.y >= 0 && ult.y <= H){
+    g.beginPath(); g.arc(ult.x, ult.y, 3.4, 0, Math.PI * 2);
+    g.fillStyle = '#fff'; g.fill();
+    g.strokeStyle = '#000'; g.lineWidth = 1.3; g.stroke();
+  }
+  // Marco y rótulo del encuadre.
+  g.strokeStyle = 'rgba(180,150,80,.35)'; g.lineWidth = 1; g.strokeRect(.5, .5, W - 1, H - 1);
+  g.fillStyle = 'rgba(212,201,176,.62)'; g.font = '11px "Courier New", monospace';
+  g.fillText('Cámara · az ' + F.az0 + '° · ' + F.fovH + '° × ' + F.fovV + '°', 9, 15);
+  activarHoverFov(cv);
+}
+
+function activarHoverFov(cv){
+  if(MFOV_CV === cv) return;
+  MFOV_CV = cv;
+  if(!MFOV_TIP){
+    MFOV_TIP = document.createElement('div');
+    MFOV_TIP.className = 'mtip';
+    document.getElementById('mfovbox').appendChild(MFOV_TIP);
+  }
+  cv.addEventListener('mousemove', e => {
+    if(!MFOV_PTS){ MFOV_TIP.style.display = 'none'; return; }
+    let best = null;
+    MFOV_PTS.forEach(p => {
+      if(p.x == null) return;
+      const d = Math.hypot(e.offsetX - p.x, e.offsetY - p.y);
+      if(!best || d < best.d) best = {d: d, x: p.x, y: p.y, alt: p.alt, el: p.el};
+    });
+    if(!best || best.d > 16 || best.alt == null){ MFOV_TIP.style.display = 'none'; return; }
+    MFOV_TIP.textContent = Math.round(best.alt).toLocaleString('es-AR') + ' m' +
+      (best.el == null ? '' : ' · ' + (Math.round(best.el * 10) / 10)
+        .toLocaleString('es-AR') + '°');
+    MFOV_TIP.style.display = 'block';
+    const bx = cv.offsetLeft, by = cv.offsetTop;
+    const bw = document.getElementById('mfovbox').clientWidth, tw = MFOV_TIP.offsetWidth;
+    MFOV_TIP.style.left = Math.max(4, Math.min(bw - tw - 4, bx + best.x + 12)) + 'px';
+    MFOV_TIP.style.top = Math.max(4, by + best.y - 30) + 'px';
+  });
+  cv.addEventListener('mouseleave', () => { MFOV_TIP.style.display = 'none'; });
+}
+window.addEventListener('resize', () => {
+  if(MFOV_ON && MACTUAL) dibujarFov(MACTUAL);
+});
+
 // Hover sobre el trayecto: muestra la altura (msnm) del punto más cercano al mouse.
 let MHOVER = null, MTIP = null, HOVER_ON = false;
 function activarHover(){
@@ -463,7 +639,7 @@ function tituloModal(f, modo){
     ((flag || f.registration)
       ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
   document.getElementById('msub').textContent =
-    fechaHora(f.ts_start_iso) + (modo === 'fov' ? ' · mapa FOV' : ' · mapa SAT');
+    fechaHora(f.ts_start_iso) + (modo === 'fov' ? ' · vista FOV' : ' · mapa SAT');
 }
 
 let MODO = 'sat';
@@ -472,10 +648,18 @@ function abrirTrayecto(k, modo){
   if(!f || TRAJ.center_lat == null) return;
   MODO = modo === 'fov' ? 'fov' : 'sat';
   tituloModal(f, MODO);
+  document.querySelector('#modal .mbox').classList.toggle('fov', MODO === 'fov');
   document.getElementById('modal').classList.add('on');
   document.body.style.overflow = 'hidden';
-  if(!MMAP) MMAP = initMapa();
   MACTUAL = f;
+  if(MODO === 'fov'){
+    MFOV_ON = true;
+    if(MFOV_TIP) MFOV_TIP.style.display = 'none';
+    requestAnimationFrame(() => { if(MACTUAL === f) dibujarFov(f); });
+    return;
+  }
+  MFOV_ON = false;
+  if(!MMAP) MMAP = initMapa();
   MMAP_READY.then(() => {
     if(MACTUAL !== f) return;
     MMAP.resize();
