@@ -384,6 +384,49 @@ const TKEY = {};                       // k -> vuelo con trayectoria
 // Basemap vectorial "Nova" de Esri (estilo público, sin API key).
 const NOVA_STYLE = 'https://cdn.arcgis.com/sharing/rest/content/items/75f4dfdff19e445395653121a95a85db/resources/styles/root.json';
 const NOVA_TILES = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf';
+// Recolor de los azules del estilo Nova: todo color con matiz azul/cian/índigo se pasa a TINTE.
+// h = matiz destino (0-360; 40 = ocre del sitio) y s = fracción de saturación que se conserva (0 = gris puro, 1 = igual de saturado).
+const TINTE = { h: 40, s: 0.30 };
+const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se considera "azul" y saturación mínima
+function parseColor(v){
+  let m = /^#([0-9a-f]{3,8})$/i.exec(v);
+  if(m){
+    let x = m[1]; if(x.length < 6) x = x.split('').map(c => c + c).join('');
+    return {r: parseInt(x.slice(0,2),16), g: parseInt(x.slice(2,4),16), b: parseInt(x.slice(4,6),16),
+            a: x.length === 8 ? parseInt(x.slice(6,8),16) / 255 : 1};
+  }
+  m = /^rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+%?))?\s*\)$/i.exec(v);
+  if(m) return {r: +m[1], g: +m[2], b: +m[3], a: m[4] == null ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])};
+  m = /^hsla?\(\s*([\d.]+)(?:deg)?[ ,]+([\d.]+)%[ ,]+([\d.]+)%(?:[ ,/]+([\d.]+%?))?\s*\)$/i.exec(v);
+  if(m){
+    const c = hsl2rgb(+m[1], +m[2] / 100, +m[3] / 100);
+    return {r: c[0], g: c[1], b: c[2], a: m[4] == null ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])};
+  }
+  return null;
+}
+function rgb2hsl(r, g, b){
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if(d === 0) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+function hsl2rgb(h, s, l){
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+function recolorAzules(v){   // recorre arrays/objetos (expresiones, stops) y transforma solo los strings que son colores azules
+  if(Array.isArray(v)) return v.map(recolorAzules);
+  if(v && typeof v === 'object'){ for(const k in v) v[k] = recolorAzules(v[k]); return v; }
+  if(typeof v !== 'string') return v;
+  const c = parseColor(v); if(!c) return v;
+  const [h, s, l] = rgb2hsl(c.r, c.g, c.b);
+  if(h < AZUL_H[0] || h > AZUL_H[1] || s < AZUL_S_MIN) return v;
+  const n = hsl2rgb(TINTE.h, s * TINTE.s, l);
+  return 'rgba(' + n[0] + ',' + n[1] + ',' + n[2] + ',' + c.a + ')';
+}
 const AZ_MIN = 13, AZ_MAX = 65;      // porción de "pizza" (azimut, grados)
 const ICONS = {   // mismos íconos que aer/web/mapa.html (nariz hacia arriba)
   airliner:   { color: '#e8e8e8', rot: true,
@@ -462,13 +505,14 @@ function initMapa(){
   const m = new maplibregl.Map({
     container: 'mmap',
     style: {version: 8, sources: {}, layers: [
-      {id: 'fondo', type: 'background', paint: {'background-color': '#011222'}}]},
+      {id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}}]},
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
   MMAP_READY = fetch(NOVA_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
     .then(st => {
+      (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // azules -> TINTE
       st.sources.esri = {type: 'vector', tiles: [NOVA_TILES],
         minzoom: 0, maxzoom: 16};
       m.setStyle(st);
