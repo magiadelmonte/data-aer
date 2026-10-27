@@ -87,6 +87,8 @@
   #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
   .mlab { color: #fff; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
   #mmap canvas { outline: none; }
+  .maplibregl-ctrl-attrib { background: rgba(0,0,0,.6) !important; color: var(--tenue) !important; font-size: 10px; }
+  .maplibregl-ctrl-attrib a { color: var(--acento) !important; }
   .mplane { filter: drop-shadow(0 0 3px rgba(0,0,0,.95)); }
   .mlegend { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 10px; letter-spacing: .04em; color: var(--tenue); }
   .mlegend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -381,9 +383,12 @@ pollReportes();
 // ============================================================
 let TRAJ = { flights: [], rings_km: [25, 50, 65] };
 const TKEY = {};                       // k -> vuelo con trayectoria
-// Basemap vectorial "Nova" de Esri (estilo público, sin API key).
-const NOVA_STYLE = 'https://cdn.arcgis.com/sharing/rest/content/items/75f4dfdff19e445395653121a95a85db/resources/styles/root.json';
-const NOVA_TILES = 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf';
+// Basemap: CARTO Dark Matter (vectorial, con etiquetas; gratis con atribución) + relieve propio (hillshade de MapLibre)
+// alimentado con los tiles de elevación Terrarium de AWS (sin API key).
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const DEM_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+// Ajustes del relieve: exag (0-1, intensidad), sombra / luz / acento (colores con alpha) y dir (dirección de la luz, 0 = N, 270 = O).
+const RELIEVE = { exag: 0.8, sombra: 'rgba(0,0,0,0.6)', luz: 'rgba(180,150,80,0.35)', acento: 'rgba(0,0,0,0.35)', dir: 300 };
 // Recolor de los azules del estilo Nova: todo color con matiz azul/cian/índigo se pasa a TINTE.
 // h = matiz destino (0-360; 40 = ocre del sitio) y s = fracción de saturación que se conserva (0 = gris puro, 1 = igual de saturado).
 const TINTE = { h: 40, s: 0.30 };
@@ -506,19 +511,28 @@ function initMapa(){
     container: 'mmap',
     style: {version: 8, sources: {}, layers: [
       {id: 'fondo', type: 'background', paint: {'background-color': '#05070a'}}]},
-    center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
+    center: [lon, lat], zoom: 8, attributionControl: {compact: true}, interactive: false,
     fadeDuration: 0,
   });
-  MMAP_READY = fetch(NOVA_STYLE, {cache: 'force-cache'})
+  MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
     .then(st => {
-      (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // azules -> TINTE
-      st.sources.esri = {type: 'vector', tiles: [NOVA_TILES],
-        minzoom: 0, maxzoom: 16};
+      (st.layers || []).forEach(l => { if(l.paint) l.paint = recolorAzules(l.paint); });   // por si quedara algún azul
+      const bg = (st.layers || []).find(l => l.type === 'background');
+      if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = '#05070a'; }
+      st.sources.dem = {type: 'raster-dem', tiles: [DEM_TILES], tileSize: 256, maxzoom: 14,
+        encoding: 'terrarium', attribution: 'Relieve: Mapzen / AWS Terrain Tiles'};
+      // El relieve va encima de fondos y agua y debajo de rutas, límites y etiquetas.
+      let idx = st.layers.findIndex(l => l.type === 'line' || l.type === 'symbol');
+      if(idx < 0) idx = st.layers.length;
+      st.layers.splice(idx, 0, {id: 'relieve', type: 'hillshade', source: 'dem', paint: {
+        'hillshade-exaggeration': RELIEVE.exag, 'hillshade-shadow-color': RELIEVE.sombra,
+        'hillshade-highlight-color': RELIEVE.luz, 'hillshade-accent-color': RELIEVE.acento,
+        'hillshade-illumination-direction': RELIEVE.dir, 'hillshade-illumination-anchor': 'map'}});
       m.setStyle(st);
       return new Promise(res => {
         const check = () => (m.isStyleLoaded() &&
-          (m.getStyle().layers || []).length > 50) ? res() : setTimeout(check, 50);
+          (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
         check();
       });
     })
