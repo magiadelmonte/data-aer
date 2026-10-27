@@ -7,7 +7,7 @@
 <title>Observatorio Uritorco</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link rel="stylesheet" href="aer.css?v=20261027k">
+<link rel="stylesheet" href="aer.css?v=20261027l">
 </head>
 <body>
 <header>
@@ -34,8 +34,31 @@
 </div>
 
 
-<script src="aer_iconos.js?v=20261027k"></script>
-<script src="aer_tabla.js?v=20261027k"></script>
-<script src="aer_mapa.js?v=20261027k"></script>
+<script src="aer_iconos.js?v=20261027l"></script>
+<script src="aer_tabla.js?v=20261027l"></script>
+<script src="aer_mapa.js?v=20261027l"></script>
+<script>
+// Si el shell vino de caché con una versión vieja, se recarga solo con un query
+// nuevo (GitHub Pages cachea 10 min). Una sola vez por build y por sesión.
+(function(){
+  var src = (document.querySelector('script[src*="aer_mapa"]') || {}).src || "";
+  var m = /[?&]v=([^&"]+)/.exec(src), cur = m && m[1];
+  if(!cur || !window.fetch) return;
+  fetch("version.json?_=" + Date.now(), {cache: "no-store"})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(v){
+      if(!v || !v.build || v.build === cur) return;
+      try{
+        var key = "aer_build_" + v.build;
+        if(sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+      }catch(e){}
+      var u = new URL(location.href);
+      u.searchParams.set("_v", v.build);
+      location.replace(u.toString());
+    })
+    .catch(function(){});
+})();
+</script>
 </body>
 </html>
