@@ -7,8 +7,8 @@ El sitio es **estático** y `index.html` es siempre el mismo: los datos se carga
 por `fetch` desde dos JSON, que son lo único que se actualiza:
 
 - **`semana.json`** — vuelos cerrados de los últimos 5 días (tabla por día).
-- **`r1_live.json`** — vuelos que están ahora mismo dentro de R1 (bloque
-  "Vuelos actuales"; se recarga cada 60 s).
+- **`r1_live.json`** — vuelos que están ahora mismo dentro de R2 (radio de 50 km:
+  incluye R1 y el anillo 25-50 km; bloque "Vuelos actuales"; se recarga cada 60 s).
 
 La página se refresca sola: `r1_live.json` cada 60 s y `semana.json` cada 5 min.
 
