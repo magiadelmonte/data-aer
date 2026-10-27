@@ -19,7 +19,9 @@ Trayecto · FOV · Mapas**.
 - **Trayecto**: orientación abreviada de entrada → salida (p. ej. `NO→SSE`).
 - **FOV**: ✓ si el vuelo entró al encuadre de la cámara (azimut + altura + alcance).
 - **Mapas**: **SAT** abre el mapa del trayecto; **FOV** (solo si el vuelo entró al
-  sector azimutal de la cámara, aunque no se haya visto) abre el mapa del sector.
+  sector azimutal de la cámara, aunque no se haya visto) abre la vista de la cámara
+  (encuadre 16:9 con el contorno de las sierras), con el vuelo proyectado en
+  azimut/elevación.
 
 Datos generados automáticamente desde el servidor del observatorio (snapshot; no
 es en vivo). Página servida por **GitHub Pages**.
