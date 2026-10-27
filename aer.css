@@ -1,6 +1,6 @@
 /* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
 :root {
-  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #05070a; --panel: #05070a;
+  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #303030; --panel: #05070a;
   --borde: rgba(180,150,80,.45); --borde-suave: rgba(180,150,80,.25);
   --acento: #b49650; --ok: #4f8a6d; --tenue: #9a917c; --blanco: #fff; --no: #c0574d;
   --fila-alt: rgba(180,150,80,.05); --hover: rgba(180,150,80,.12);
@@ -73,7 +73,7 @@ tbody tr.has-traj { cursor: pointer; }
 .mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
-.mlab { color: #fff; opacity: .5; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
+.mlab { color: #fff; opacity: .8; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
 #mmap canvas { outline: none; }
 .mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
 .mfoot a { color: var(--acento); text-decoration: none; }

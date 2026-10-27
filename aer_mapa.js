@@ -12,10 +12,10 @@ const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.j
 const TINTE = { h: 40, s: 0.30 };
 const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se considera "azul" y saturación mínima
 // Aclareo del mapa base: se suma esta fracción de la luminosidad que falta hasta el blanco
-// (0 = estilo original; 0,18 ≈ +50 % de brillo percibido en tierras, aguas y rutas).
-// No se aplica a símbolos (etiquetas/íconos) para no perder contraste.
-const ACLARAR = 0.18;
-const MAP_BG = '#242a31';   // fondo del lienzo mientras carga el estilo y color de "tierra" base
+// (0 = estilo original; 0,14 ≈ tierras #0e0e0e -> #2f2f2f, más del doble de brillo).
+// Los halos de las etiquetas quedan oscuros para no perder contraste.
+const ACLARAR = 0.14;
+const MAP_BG = '#303030';   // fondo del lienzo mientras carga el estilo (= tierra ya aclarada)
 function parseColor(v){
   let m = /^#([0-9a-f]{3,8})$/i.exec(v);
   if(m){
@@ -122,9 +122,10 @@ function initMapa(){
       (st.layers || []).forEach(l => {
         if(!l.paint) return;
         l.paint = recolorAzules(l.paint);               // por si quedara algún azul
-        if(l.type === 'symbol') return;                 // etiquetas/íconos: se dejan como están (contraste)
-        for(const k in l.paint)                          // tierras, aguas, rutas y bordes más visibles
-          if(/color/.test(k)) l.paint[k] = mapColores(l.paint[k], aclararColor);
+        for(const k in l.paint){                         // tierras, aguas, rutas, bordes y textos más visibles
+          if(!/color/.test(k) || /halo/.test(k)) continue;   // los halos de texto quedan oscuros (contraste)
+          l.paint[k] = mapColores(l.paint[k], aclararColor);
+        }
       });
       const bg = (st.layers || []).find(l => l.type === 'background');
       if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = MAP_BG; }
