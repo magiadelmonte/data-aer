@@ -103,14 +103,17 @@ tbody tr:last-child td { border-bottom: none; }
    Titila suave (opacidad) para que se distinga del trazo y de las estrellas. */
 .mfovico { position: absolute; z-index: 4; width: 26px; height: 26px;
   margin: -13px 0 0 -13px; display: none; pointer-events: none;
-  animation: fovpulse 1.8s ease-in-out infinite; }
+  animation: iconpulse 1.8s ease-in-out infinite; }
 .mfovico .mico { width: 26px; height: 26px; }
-@keyframes fovpulse {
+/* El mismo titileo para el avión del mapa SAT (el otro `.mplane` del sitio es el de
+   la vista FOV, que ya titila con su contenedor). */
+#mmap .maplibregl-marker .mplane { animation: iconpulse 1.8s ease-in-out infinite; }
+@keyframes iconpulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .2; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mfovico { animation: none; }
+  .mfovico, #mmap .maplibregl-marker .mplane { animation: none; }
 }
 .mlab { color: #fff; opacity: .85; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
 .mlab_km { opacity: .8; font-size: 10px; }        /* distancias: sobre la línea del radio */

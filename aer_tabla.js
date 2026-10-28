@@ -74,7 +74,7 @@ function tipoCell(f){
 }
 
 const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +
-  '<th>País</th><th>Distancia</th><th>Trayecto</th><th>FOV</th><th>Mapas</th></tr>';
+  '<th>País</th><th>Distancia</th><th>Trayecto</th><th>Mapas</th></tr>';
 
 const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
 const esHoy = iso => dayKey(iso) ===
@@ -104,7 +104,6 @@ function rowHtml(f, live){
     '<td>' + flag + pais + '</td>' +
     '<td>' + capillaInfo(f) + '</td>' +
     '<td class="dir">' + orientInfo(f) + '</td>' +
-    '<td class="fov">' + (f.fov ? '<span class="mark yes">✓</span>' : '') + '</td>' +
     '<td class="mapas">' + mapLinks(f) + '</td>' +
     '</tr>';
 }
