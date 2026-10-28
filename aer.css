@@ -101,10 +101,6 @@ td .tipo { color: var(--tenue); }
 .mruta .mrdatos { display: flex; flex-direction: column; gap: 2px;
   flex: 1 1 auto; min-width: 0; }
 
-.mbox.fov .mruta { position: absolute; z-index: 5; left: 10px; right: 10px;
-  bottom: 10px; margin: 0; padding: 5px 10px; border: 1px solid var(--borde);
-  border-radius: 8px; background: rgba(5, 7, 10, .76); }
-.mbox.fov .mruta[hidden] { display: none; }
 .mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
   font-variant-numeric: tabular-nums; }

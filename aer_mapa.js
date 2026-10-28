@@ -461,7 +461,9 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  const W = dispW, H = W / ratio;
+  // Ancho completo; solo se achica si el alto disponible (ya descontados el
+  // encabezado y la franja de ruta) no alcanza: asi no se solapa con el titulo.
+  const W = Math.min(dispW, dispH * ratio), H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
