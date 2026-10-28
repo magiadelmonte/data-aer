@@ -719,7 +719,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
 // Sin hora de aterrizaje: cuando vemos el vuelo (y cuando lo damos por cerrado) la
 // aeronave sigue en vuelo, asi que FlightAware no la tiene todavia.
 // Prefiere la ficha de FlightAware (`fa`); si no hay, cae a la ruta de adsbdb (`route`).
-function rutaModal(f){
+function rutaModal(f, modo){
   const box = document.getElementById('mruta');
   const fa = f.fa || null;
   const ruta = fa || f.route || null;
@@ -753,6 +753,11 @@ function rutaModal(f){
     (salida ? '<span class="mh">' + esc(salida) + '</span>' : '') +
     punto(origen) + '<span class="marr">→</span>' + punto(destino) +
     '</div>';
+  // boton para saltar al otro mapa del mismo vuelo
+  document.getElementById('mracc').innerHTML =
+    '<button type="button" class="mbtn" data-modo="' +
+    (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
+    (modo === 'fov' ? 'SAT' : 'FOV') + '</button>';
   box.hidden = false;
 }
 
@@ -771,7 +776,7 @@ function tituloModal(f, modo){
     ((flag || f.registration)
       ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
   document.getElementById('msub').textContent = fechaHora(f.ts_start_iso);
-  rutaModal(f);
+  rutaModal(f, modo);
 }
 
 let MODO = 'sat';
@@ -815,6 +820,12 @@ function cerrarModal(){
   document.getElementById('modal').classList.remove('on');
   document.body.style.overflow = '';
 }
+
+document.getElementById('mracc').addEventListener('click', e => {
+  const b = e.target.closest('button[data-modo]');
+  if(!b || !MACTUAL) return;
+  mostrarTrayecto(MACTUAL, b.dataset.modo);
+});
 
 document.getElementById('modal').addEventListener('click', e => {
   if(e.target.id === 'modal') cerrarModal();

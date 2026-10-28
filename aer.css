@@ -105,6 +105,11 @@ td .tipo { color: var(--tenue); }
 
 .mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mruta .mpais { color: var(--tenue); }
+.mruta .mracc { margin-left: auto; flex: 0 0 auto; }
+.mbtn { font: inherit; font-size: 11px; letter-spacing: .06em; padding: 1px 7px;
+  border: 1px solid var(--borde); border-radius: 8px; color: var(--acento);
+  background: transparent; cursor: pointer; white-space: nowrap; }
+.mbtn:hover, .mbtn:focus-visible { border-color: var(--acento); color: var(--blanco); }
 .mruta .marr { color: var(--acento); }
 .mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
   font-variant-numeric: tabular-nums; }
