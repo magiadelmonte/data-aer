@@ -733,23 +733,26 @@ function rutaModal(f){
     const m = String(iso || '').match(/T(\d{2}:\d{2})/);   // ISO local (UTC-3) del server
     return m ? m[1] : null;
   };
-  const codigo = a => (a && (a.iata || a.icao)) || '';
-  const ciudad = a => a ? [a.municipality, a.country_name || a.country]
-    .filter(Boolean).join(', ') : '';
   const bandera = a => {
     const c = String((a && a.country) || '').toLowerCase();
     return /^[a-z]{2}$/.test(c)
       ? '<img class="flag" src="https://flagcdn.com/w20/' + c +
         '.png" onerror="this.style.display=\'none\'">' : '';
   };
-  const linea = (h, a) =>
-    '<div class="mrl">' +
-    (h ? '<span class="mh">' + esc(h) + '</span>' : '') +
-    '<span class="map">' + esc(codigo(a)) + '</span>' +
-    '<span class="mci">' + esc(ciudad(a)) + '</span>' + bandera(a) + '</div>';
+  const punto = a => {
+    if(!a) return '<span class="mci">?</span>';
+    const pais = a.country_name || a.country || '';
+    return '<span class="map">' + esc(a.iata || a.icao || '') + '</span>' +
+      (a.municipality ? '<span class="mci">' + esc(a.municipality) + '</span>' : '') +
+      bandera(a) +
+      (pais ? '<span class="mpais">' + esc(pais) + '</span>' : '');
+  };
+  const salida = hora(fa && fa.takeoff);
   document.getElementById('mrdatos').innerHTML =
-    linea(hora(fa && fa.takeoff), origen) +
-    linea(null, destino);
+    '<div class="mrl">' +
+    (salida ? '<span class="mh">' + esc(salida) + '</span>' : '') +
+    punto(origen) + '<span class="marr">→</span>' + punto(destino) +
+    '</div>';
   box.hidden = false;
 }
 
@@ -762,6 +765,7 @@ function tituloModal(f, modo){
       encodeURIComponent(f.country) + '.png" onerror="this.style.display=\'none\'">'
     : '';
   document.getElementById('mtit').innerHTML =
+    '<span class="mmodo">MAPA ' + (modo === 'fov' ? 'FOV' : 'SAT') + '</span>' +
     (tipo ? '<span class="mtipo">' + esc(tipo) + '</span>' : '') +
     '<span class="mcall">' + esc(f.callsign || '') + '</span>' +
     ((flag || f.registration)

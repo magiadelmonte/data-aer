@@ -129,6 +129,14 @@ document.addEventListener('click', e => {
   e.preventDefault();
   abrirFoto(a.dataset.fotok);
 });
+// La columna Vuelo enlaza a la ficha publica de FlightAware (pestaña nueva).
+function vueloLink(f){
+  const cs = f.callsign || f.icao24 || '';
+  if(!cs) return '';
+  return '<a class="ext" href="https://www.flightaware.com/live/flight/' +
+    encodeURIComponent(cs) + '" target="_blank" rel="noopener noreferrer">' +
+    cs + '</a>';
+}
 function rowHtml(f, live){
   const flag = f.country
     ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
@@ -140,7 +148,7 @@ function rowHtml(f, live){
   return '<tr>' +
     '<td class="hora">' + hourMin(f.ts_paso_iso || f.ts_start_iso) + '</td>' +
     '<td class="dur">' + dur + '</td>' +
-    '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
+    '<td>' + vueloLink(f) + '</td>' +
     '<td>' + tipoCell(f) + '</td>' +
     '<td>' + flag + pais + '</td>' +
     '<td>' + capillaInfo(f) + '</td>' +
