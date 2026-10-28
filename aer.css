@@ -78,13 +78,13 @@ td .reg { color: var(--blanco); font-weight: 600; letter-spacing: .02em; }
 td .tipo { color: var(--tenue); }
 .mlink + .mlink { margin-left: 6px; }
 /* ---- Modal de trayectoria ---- */
-#modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
+#modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 6px 16px; background: rgba(0,0,0,.84); }
 #modal.on { display: flex; }
 .mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
-.mbox.fov { width: min(96vw, 1280px, calc((96vh - 48px) * 1.774));
+.mbox.fov { width: min(96vw, 1280px, calc((100vh - 92px) * 1.774));
   aspect-ratio: auto; height: auto; }
 .mbox.fov .mfoot { flex: 0 0 auto; display: none; }
-.mhead { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
+.mhead { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead #mtit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mhead #mtit > * + * { border-left: 1px solid var(--borde-suave); padding-left: 8px; }
 .mhead .mmodo { display: inline-block; padding: 1px 7px; border: 1px solid var(--borde);
@@ -94,8 +94,8 @@ td .tipo { color: var(--tenue); }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 .mhead .mreg .flag { margin: 0; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; margin-left: auto; }
-.mruta { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
-  padding: 5px 12px 6px; border-bottom: 1px solid var(--borde); color: var(--tenue);
+.mruta { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px;
+  padding: 4px 12px 5px; border-bottom: 1px solid var(--borde); color: var(--tenue);
   font-size: 12px; letter-spacing: .02em; line-height: 1.5; }
 .mruta[hidden] { display: none; }
 .mruta .mrdatos { display: flex; flex-direction: column; gap: 2px;
