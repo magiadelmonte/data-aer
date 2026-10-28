@@ -461,9 +461,7 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  // Que entre en la caja: con la franja de ruta el alto disponible es menor y el
-  // lienzo a todo el ancho se salia del modal (los datos de arriba quedaban cortados).
-  const W = Math.min(dispW, dispH * ratio), H = W / ratio;
+  const W = dispW, H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);

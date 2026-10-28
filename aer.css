@@ -79,7 +79,7 @@ tbody tr:last-child td { border-bottom: none; }
 #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
 #modal.on { display: flex; }
 .mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
-.mbox.fov { width: min(96vw, 1280px, calc((96vh - 104px) * 1.774));
+.mbox.fov { width: min(96vw, 1280px, calc((96vh - 48px) * 1.774));
   aspect-ratio: auto; height: auto; }
 .mbox.fov .mfoot { flex: 0 0 auto; display: none; }
 .mhead { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
@@ -99,6 +99,10 @@ tbody tr:last-child td { border-bottom: none; }
 .mruta .mrdatos { display: flex; flex-direction: column; gap: 2px;
   flex: 1 1 auto; min-width: 0; }
 
+.mbox.fov .mruta { position: absolute; z-index: 5; left: 10px; right: 10px;
+  bottom: 10px; margin: 0; padding: 5px 10px; border: 1px solid var(--borde);
+  border-radius: 8px; background: rgba(5, 7, 10, .76); }
+.mbox.fov .mruta[hidden] { display: none; }
 .mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
   font-variant-numeric: tabular-nums; }
@@ -108,7 +112,7 @@ tbody tr:last-child td { border-bottom: none; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
 
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
-#mfovbox { display: none; flex: 1 1 auto; min-height: 0; overflow: hidden; position: relative;
+#mfovbox { display: none; flex: 1 1 auto; min-height: 0; position: relative;
   align-items: center; justify-content: center; background: var(--fondo-canvas); }
 .mbox.fov #mmap { display: none; }
 .mbox.fov #mfovbox { display: flex; }
