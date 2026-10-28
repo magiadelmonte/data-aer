@@ -708,9 +708,11 @@ function encuadrar(modo){
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
   c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
-// Lineas 2 y 3 del modal: horario + aeropuerto (codigo) + ciudad, pais + bandera.
-//   despegue - ORIGEN - Ciudad, Pais (bandera)
-//   aterrizaje - DESTINO - Ciudad, Pais (bandera)   ["en vuelo" si aun no aterrizo]
+// Lineas 2 y 3 del modal: aeropuerto (codigo) + ciudad, pais + bandera.
+//   hora despegue - ORIGEN - Ciudad, Pais (bandera)
+//   DESTINO - Ciudad, Pais (bandera)
+// Sin hora de aterrizaje: cuando vemos el vuelo (y cuando lo damos por cerrado) la
+// aeronave sigue en vuelo, asi que FlightAware no la tiene todavia.
 // Prefiere la ficha de FlightAware (`fa`); si no hay, cae a la ruta de adsbdb (`route`).
 function rutaModal(f){
   const box = document.getElementById('mruta');
@@ -731,18 +733,14 @@ function rutaModal(f){
       ? '<img class="flag" src="https://flagcdn.com/w20/' + c +
         '.png" onerror="this.style.display=\'none\'">' : '';
   };
-  // en vuelo: lo dice FlightAware, o el vuelo sigue abierto (sin ts_end)
-  const enVuelo = (fa && (fa.status === 'airborne' || !fa.landing)) ||
-                  (!fa && 'ts_end' in f && f.ts_end == null);
-  const linea = (h, a, texto) =>
+  const linea = (h, a) =>
     '<div class="mrl">' +
-    (h ? '<span class="mh">' + esc(h) + '</span>'
-       : (texto ? '<span class="mh">' + esc(texto) + '</span>' : '')) +
+    (h ? '<span class="mh">' + esc(h) + '</span>' : '') +
     '<span class="map">' + esc(codigo(a)) + '</span>' +
     '<span class="mci">' + esc(ciudad(a)) + '</span>' + bandera(a) + '</div>';
   box.innerHTML =
-    linea(hora(fa && fa.takeoff), origen, null) +
-    linea(hora(fa && fa.landing), destino, enVuelo ? 'en vuelo' : null);
+    linea(hora(fa && fa.takeoff), origen) +
+    linea(null, destino);
   box.hidden = false;
 }
 
