@@ -708,7 +708,9 @@ function encuadrar(modo){
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
   c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
-// Linea 2 del modal: origen -> destino completos + horas de despegue/aterrizaje (UTC-3).
+// Lineas 2 y 3 del modal: horario + aeropuerto (codigo) + ciudad, pais + bandera.
+//   despegue - ORIGEN - Ciudad, Pais (bandera)
+//   aterrizaje - DESTINO - Ciudad, Pais (bandera)   ["en vuelo" si aun no aterrizo]
 // Prefiere la ficha de FlightAware (`fa`); si no hay, cae a la ruta de adsbdb (`route`).
 function rutaModal(f){
   const box = document.getElementById('mruta');
@@ -716,29 +718,31 @@ function rutaModal(f){
   const ruta = fa || f.route || null;
   const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
   if(!origen && !destino){ box.hidden = true; box.innerHTML = ''; return; }
-  const aeropuerto = a => {
-    if(!a) return '?';
-    const cod = [a.iata, a.icao].filter(Boolean).join('/');
-    const partes = [a.name, [a.municipality, a.country_name || a.country]
-      .filter(Boolean).join(', ')].filter(Boolean);
-    return (cod ? '<i>' + esc(cod) + '</i> ' : '') + esc(partes.join(' · '));
-  };
   const hora = iso => {
-    if(!iso) return null;
-    const m = String(iso).match(/T(\d{2}:\d{2})/);      // ISO local (UTC-3) que manda el server
+    const m = String(iso || '').match(/T(\d{2}:\d{2})/);   // ISO local (UTC-3) del server
     return m ? m[1] : null;
   };
-  const despegue = hora(fa && fa.takeoff), aterrizaje = hora(fa && fa.landing);
-  const horas = (despegue || aterrizaje)
-    ? '<span class="mrh">' +
-      (despegue ? 'despegue <b>' + despegue + '</b>' : '') +
-      (despegue && aterrizaje ? ' · ' : '') +
-      (aterrizaje ? 'aterrizaje <b>' + aterrizaje + '</b>' : '') +
-      '</span>'
-    : '';
-  box.innerHTML = '<span class="mrt">' + aeropuerto(origen) + '</span>' +
-                  '<span class="mrt">→</span>' +
-                  '<span class="mrt">' + aeropuerto(destino) + '</span>' + horas;
+  const codigo = a => (a && (a.iata || a.icao)) || '';
+  const ciudad = a => a ? [a.municipality, a.country_name || a.country]
+    .filter(Boolean).join(', ') : '';
+  const bandera = a => {
+    const c = String((a && a.country) || '').toLowerCase();
+    return /^[a-z]{2}$/.test(c)
+      ? '<img class="flag" src="https://flagcdn.com/w20/' + c +
+        '.png" onerror="this.style.display=\'none\'">' : '';
+  };
+  // en vuelo: lo dice FlightAware, o el vuelo sigue abierto (sin ts_end)
+  const enVuelo = (fa && (fa.status === 'airborne' || !fa.landing)) ||
+                  (!fa && 'ts_end' in f && f.ts_end == null);
+  const linea = (h, a, texto) =>
+    '<div class="mrl">' +
+    (h ? '<span class="mh">' + esc(h) + '</span>'
+       : (texto ? '<span class="mh">' + esc(texto) + '</span>' : '')) +
+    '<span class="map">' + esc(codigo(a)) + '</span>' +
+    '<span class="mci">' + esc(ciudad(a)) + '</span>' + bandera(a) + '</div>';
+  box.innerHTML =
+    linea(hora(fa && fa.takeoff), origen, null) +
+    linea(hora(fa && fa.landing), destino, enVuelo ? 'en vuelo' : null);
   box.hidden = false;
 }
 

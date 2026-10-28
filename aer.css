@@ -91,14 +91,16 @@ tbody tr:last-child td { border-bottom: none; }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 .mhead .mreg .flag { margin: 0; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; margin-left: auto; }
-.mruta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
-  padding: 6px 12px; border-bottom: 1px solid var(--borde); color: var(--tenue);
-  font-size: 12px; letter-spacing: .02em; line-height: 1.45; }
+.mruta { display: flex; flex-direction: column; gap: 2px;
+  padding: 5px 12px 6px; border-bottom: 1px solid var(--borde); color: var(--tenue);
+  font-size: 12px; letter-spacing: .02em; line-height: 1.5; }
 .mruta[hidden] { display: none; }
-.mruta .mrt { color: var(--blanco); }
-.mruta .mrt i { font-style: normal; color: var(--acento); }
-.mruta .mrh { margin-left: auto; white-space: nowrap; }
-.mruta .mrh b { color: var(--blanco); font-weight: 600; }
+.mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
+  font-variant-numeric: tabular-nums; }
+.mruta .map { color: var(--acento); font-weight: 700; letter-spacing: .04em; }
+.mruta .mci { color: var(--tenue); }
+.mruta .flag { width: 16px; height: 12px; margin: 0; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
 #mfovbox { display: none; flex: 1 1 auto; min-height: 0; position: relative;
