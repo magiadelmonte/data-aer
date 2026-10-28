@@ -138,7 +138,7 @@ function rowHtml(f, live){
     ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
     : durHMS(f.duration_sec);
   return '<tr>' +
-    '<td class="hora">' + hourMin(f.ts_start_iso) + '</td>' +
+    '<td class="hora">' + hourMin(f.ts_paso_iso || f.ts_start_iso) + '</td>' +
     '<td class="dur">' + dur + '</td>' +
     '<td>' + (f.callsign || f.icao24 || '') + '</td>' +
     '<td>' + tipoCell(f) + '</td>' +
