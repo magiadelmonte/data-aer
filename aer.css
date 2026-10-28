@@ -73,7 +73,9 @@ tbody tr:last-child td { border-bottom: none; }
   letter-spacing: .05em; transition: background .12s, color .12s; }
 .mlink:hover { background: var(--hover); color: var(--blanco); }
 .mlink.off { color: var(--tenue); opacity: .4; pointer-events: none; }
-.mlink.foto { color: var(--acento); }
+.mlink.foto { color: var(--acento); padding: 0 6px 1px; font-size: 10px; }
+td .reg { color: var(--blanco); font-weight: 600; letter-spacing: .02em; }
+td .tipo { color: var(--tenue); }
 .mlink + .mlink { margin-left: 6px; }
 /* ---- Modal de trayectoria ---- */
 #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }

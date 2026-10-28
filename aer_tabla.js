@@ -70,7 +70,17 @@ function tipoCell(f){
   let cat = f.ac_type_label || '';
   if(!tipo){ tipo = cat; cat = ''; }
   if(cat) tipo += '<span class="cat">' + cat + '</span>';
-  return tipo;
+  // Matricula + boton FOTO (solo si hay foto cargada), juntos en la columna Aeronave.
+  if(!f.registration) return tipo;
+  const k = rowKey(f), kq = k.replace(/"/g, '&quot;');
+  let foto = '';
+  if(f.photo && f.photo.url){
+    FOTOS[k] = {url: f.photo.url,
+      titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
+    foto = ' <a class="mlink foto" href="#" data-fotok="' + kq + '">FOTO</a>';
+  }
+  return '<span class="reg">' + f.registration + '</span>' + foto +
+         (tipo ? ' <span class="tipo">' + tipo + '</span>' : '');
 }
 
 const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +
@@ -88,13 +98,7 @@ function mapLinks(f){
     '" data-modo="' + modo + '">' + txt + '</a>';
   // El mapa FOV solo aparece si el vuelo entró al sector azimutal de la cámara
   // (aunque no se haya visto: puede haber pasado por debajo o por encima del FOV).
-  let foto = '';
-  if(f.photo && f.photo.url){
-    FOTOS[k] = {url: f.photo.url,
-      titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
-    foto = '<a class="mlink foto" href="#" data-fotok="' + kq + '">FOTO</a>';
-  }
-  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '') + foto;
+  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '');
 }
 
 // Modal de fotografía: se abre desde el link FOTO de la lista de vuelos.
