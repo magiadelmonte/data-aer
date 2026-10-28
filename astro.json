@@ -1,0 +1,15 @@
+{
+  "noche": {
+    "desde": "20:00",
+    "hasta": "05:30"
+  },
+  "colores": {
+    "estrella": "#cfd8ff",
+    "constel": "#8fb0d8",
+    "profundo": "#8fb8c8",
+    "sol": "#ffe27a",
+    "planeta": "#ffb877",
+    "txt": "#d4c9b0"
+  },
+  "constelAlfa": 0.225
+}

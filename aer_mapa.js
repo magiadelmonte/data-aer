@@ -500,6 +500,12 @@ function dibujarFov(f){
     }
   }
 
+  // Cielo de fondo (sólo vuelos nocturnos): mismo catálogo y colores que data-sat.
+  // Va antes que el trayecto y que la silueta del cerro, que tapan lo que está detrás.
+  if(typeof astroDibujar === 'function')
+    astroDibujar(g, P, F, W, H, f, TRAJ.center_lat, TRAJ.center_lon,
+                 () => { if(MACTUAL === f && MODO === 'fov') dibujarFov(f); });
+
   // Cresta del Uritorco (la silueta rellena va al final, para tapar lo que pasa detrás).
   sierraFov(g, F.sierra, W, H, false);
 
