@@ -91,10 +91,19 @@ tbody tr:last-child td { border-bottom: none; }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 .mhead .mreg .flag { margin: 0; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; margin-left: auto; }
-.mruta { display: flex; flex-direction: column; gap: 2px;
+.mruta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
   padding: 5px 12px 6px; border-bottom: 1px solid var(--borde); color: var(--tenue);
   font-size: 12px; letter-spacing: .02em; line-height: 1.5; }
 .mruta[hidden] { display: none; }
+.mruta .mrdatos { display: flex; flex-direction: column; gap: 2px;
+  flex: 1 1 auto; min-width: 0; }
+.mruta .mracc { display: flex; gap: 6px; flex: 0 0 auto; margin-left: auto; }
+.mruta.volver .mracc { flex: 1 1 100%; justify-content: center; margin: 2px 0 0; }
+.mbtn { font: inherit; font-size: 11px; letter-spacing: .08em; padding: 2px 8px;
+  border: 1px solid var(--borde); border-radius: 8px; color: var(--acento);
+  background: transparent; cursor: pointer; white-space: nowrap; }
+.mbtn:hover, .mbtn:focus-visible { border-color: var(--acento); color: var(--blanco); }
+.mbtn:focus-visible { outline: 1px solid var(--acento); outline-offset: 1px; }
 .mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
   font-variant-numeric: tabular-nums; }
@@ -102,6 +111,17 @@ tbody tr:last-child td { border-bottom: none; }
 .mruta .mci { color: var(--tenue); }
 .mruta .flag { width: 16px; height: 12px; margin: 0; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
+/* Vistas del modal: trayecto completo (mapa aparte) y foto de la aeronave. */
+#mview { display: none; flex: 1 1 auto; width: 100%; min-height: 0;
+  background: var(--fondo-canvas); }
+#mfoto { display: none; flex: 1 1 auto; min-height: 0; align-items: center;
+  justify-content: center; padding: 10px; background: var(--fondo-canvas); }
+#mfoto img { max-width: 100%; max-height: 100%; object-fit: contain;
+  border: 1px solid var(--borde); }
+.mbox.view-route #mmap, .mbox.view-route #mfovbox,
+.mbox.view-photo #mmap, .mbox.view-photo #mfovbox { display: none; }
+.mbox.view-route #mview { display: flex; }
+.mbox.view-photo #mfoto { display: flex; }
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
 #mfovbox { display: none; flex: 1 1 auto; min-height: 0; position: relative;
   align-items: center; justify-content: center; background: var(--fondo-canvas); }

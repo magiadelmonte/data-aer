@@ -139,6 +139,40 @@ function destino(lat, lon, brg, km){
   return [f2 * 180 / Math.PI, ((l2 * 180 / Math.PI + 540) % 360) - 180];
 }
 
+// Arma el estilo del mapa (recolor de CARTO en 3 niveles de tolerancia).
+function estiloMapa(base, nivel){
+  const st = JSON.parse(base);
+  if(nivel >= 1){
+    (st.layers || []).forEach(l => {
+      if(!l.paint) return;
+      l.paint = recolorAzules(l.paint);               // por si quedara algún azul
+      for(const k in l.paint){                         // tierras, aguas, rutas, bordes y textos más visibles
+        if(!/color/.test(k) || /halo/.test(k)) continue;   // los halos de texto quedan oscuros (contraste)
+        l.paint[k] = mapColores(l.paint[k], aclararColor);
+      }
+    });
+    (st.layers || []).forEach(l => {
+      if(l.type === 'line'){
+        l.paint = l.paint || {};
+        l.paint['line-color'] = CELESTE;
+      } else if(l.type === 'symbol'){
+        l.paint = l.paint || {};
+        l.paint['text-color'] = CELESTE;
+        l.paint['text-halo-color'] = 'rgba(5,7,10,.92)';
+        if(l.paint['icon-color'] !== undefined) l.paint['icon-color'] = CELESTE;
+      }
+    });
+    const bg = (st.layers || []).find(l => l.type === 'background');
+    if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = MAP_BG; }
+  }
+  if(nivel >= 2){
+    (st.layers || []).forEach(l => {
+      if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
+    });
+  }
+  return st;
+}
+
 function initMapa(){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
@@ -151,38 +185,6 @@ function initMapa(){
   });
   // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida, 1 = solo recolor, 0 = estilo original.
   // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
-  const armar = (base, nivel) => {
-    const st = JSON.parse(base);
-    if(nivel >= 1){
-      (st.layers || []).forEach(l => {
-        if(!l.paint) return;
-        l.paint = recolorAzules(l.paint);               // por si quedara algún azul
-        for(const k in l.paint){                         // tierras, aguas, rutas, bordes y textos más visibles
-          if(!/color/.test(k) || /halo/.test(k)) continue;   // los halos de texto quedan oscuros (contraste)
-          l.paint[k] = mapColores(l.paint[k], aclararColor);
-        }
-      });
-      (st.layers || []).forEach(l => {
-        if(l.type === 'line'){
-          l.paint = l.paint || {};
-          l.paint['line-color'] = CELESTE;
-        } else if(l.type === 'symbol'){
-          l.paint = l.paint || {};
-          l.paint['text-color'] = CELESTE;
-          l.paint['text-halo-color'] = 'rgba(5,7,10,.92)';
-          if(l.paint['icon-color'] !== undefined) l.paint['icon-color'] = CELESTE;
-        }
-      });
-      const bg = (st.layers || []).find(l => l.type === 'background');
-      if(bg){ bg.paint = bg.paint || {}; bg.paint['background-color'] = MAP_BG; }
-    }
-    if(nivel >= 2){
-      (st.layers || []).forEach(l => {
-        if(l.type === 'symbol' && l.layout && l.layout['text-field']) l.layout['text-field'] = partirCapilla(l.layout['text-field']);
-      });
-    }
-    return st;
-  };
   MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
     .then(st => {
@@ -192,11 +194,11 @@ function initMapa(){
         const msg = (e && e.error && e.error.message) || '';
         if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) && !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
           console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
-          nivel--; m.setStyle(armar(base, nivel), {diff: false});
+          nivel--; m.setStyle(estiloMapa(base, nivel), {diff: false});
         }
       };
       m.on('error', onErr);
-      m.setStyle(armar(base, nivel), {diff: false});
+      m.setStyle(estiloMapa(base, nivel), {diff: false});
       return new Promise(res => {
         const check = () => (m.isStyleLoaded() &&
           (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
