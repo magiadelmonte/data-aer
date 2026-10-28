@@ -73,15 +73,16 @@ tbody tr:last-child td { border-bottom: none; }
   letter-spacing: .05em; transition: background .12s, color .12s; }
 .mlink:hover { background: var(--hover); color: var(--blanco); }
 .mlink.off { color: var(--tenue); opacity: .4; pointer-events: none; }
+.mlink.foto { color: var(--acento); }
 .mlink + .mlink { margin-left: 6px; }
 /* ---- Modal de trayectoria ---- */
 #modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.84); }
 #modal.on { display: flex; }
 .mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
-.mbox.fov { width: min(96vw, 1280px, calc((96vh - 48px) * 1.774));
+.mbox.fov { width: min(96vw, 1280px, calc((96vh - 104px) * 1.774));
   aspect-ratio: auto; height: auto; }
-.mbox.fov .mfoot { display: none; }
-.mhead { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
+.mbox.fov .mfoot { flex: 0 0 auto; display: none; }
+.mhead { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco); font-weight: 700; letter-spacing: .05em; font-size: 15px; }
 .mhead #mtit { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mhead #mtit > * + * { border-left: 1px solid var(--borde-suave); padding-left: 8px; }
 .mhead .mmodo { display: inline-block; padding: 1px 7px; border: 1px solid var(--borde);
@@ -91,19 +92,13 @@ tbody tr:last-child td { border-bottom: none; }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 .mhead .mreg .flag { margin: 0; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; margin-left: auto; }
-.mruta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+.mruta { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
   padding: 5px 12px 6px; border-bottom: 1px solid var(--borde); color: var(--tenue);
   font-size: 12px; letter-spacing: .02em; line-height: 1.5; }
 .mruta[hidden] { display: none; }
 .mruta .mrdatos { display: flex; flex-direction: column; gap: 2px;
   flex: 1 1 auto; min-width: 0; }
-.mruta .mracc { display: flex; gap: 6px; flex: 0 0 auto; margin-left: auto; }
-.mruta.volver .mracc { flex: 1 1 100%; justify-content: center; margin: 2px 0 0; }
-.mbtn { font: inherit; font-size: 11px; letter-spacing: .08em; padding: 2px 8px;
-  border: 1px solid var(--borde); border-radius: 8px; color: var(--acento);
-  background: transparent; cursor: pointer; white-space: nowrap; }
-.mbtn:hover, .mbtn:focus-visible { border-color: var(--acento); color: var(--blanco); }
-.mbtn:focus-visible { outline: 1px solid var(--acento); outline-offset: 1px; }
+
 .mruta .mrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mruta .mh { color: var(--blanco); font-weight: 600; min-width: 58px;
   font-variant-numeric: tabular-nums; }
@@ -111,20 +106,9 @@ tbody tr:last-child td { border-bottom: none; }
 .mruta .mci { color: var(--tenue); }
 .mruta .flag { width: 16px; height: 12px; margin: 0; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
-/* Vistas del modal: trayecto completo (mapa aparte) y foto de la aeronave. */
-#mview { display: none; flex: 1 1 auto; width: 100%; min-height: 0;
-  background: var(--fondo-canvas); }
-#mfoto { display: none; flex: 1 1 auto; min-height: 0; align-items: center;
-  justify-content: center; padding: 10px; background: var(--fondo-canvas); }
-#mfoto img { max-width: 100%; max-height: 100%; object-fit: contain;
-  border: 1px solid var(--borde); }
-.mbox.view-route #mmap, .mbox.view-route #mfovbox,
-.mbox.view-photo #mmap, .mbox.view-photo #mfovbox { display: none; }
-.mbox.fov.view-route, .mbox.fov.view-photo { height: min(86vh, 820px); aspect-ratio: auto; }
-.mbox.view-route #mview { display: flex; }
-.mbox.view-photo #mfoto { display: flex; }
+
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
-#mfovbox { display: none; flex: 1 1 auto; min-height: 0; position: relative;
+#mfovbox { display: none; flex: 1 1 auto; min-height: 0; overflow: hidden; position: relative;
   align-items: center; justify-content: center; background: var(--fondo-canvas); }
 .mbox.fov #mmap { display: none; }
 .mbox.fov #mfovbox { display: flex; }
@@ -150,7 +134,7 @@ tbody tr:last-child td { border-bottom: none; }
 .mlab_km { opacity: .8; font-size: 10px; }        /* distancias: sobre la línea del radio */
 .mlab_card { font-weight: 700; opacity: .9; }     /* cardinales del anillo exterior */
 #mmap canvas { outline: none; }
-.mfoot { padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
+.mfoot { flex: 0 0 auto; padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
 .mfoot a { color: var(--acento); text-decoration: none; }
 .mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(5,7,10,.92); border: 1px solid var(--borde); color: #fff; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
 .mplane { filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 3px rgba(0,0,0,.9)); }
@@ -168,3 +152,22 @@ footer a { color: var(--acento); }
   th, td { padding: 6px 8px; font-size: 12px; }
   .day-body { overflow-x: auto; }
 }
+
+/* Modal de fotografía (desde la lista de vuelos) */
+#fotomodal { display: none; position: fixed; inset: 0; z-index: 10000; padding: 3vmin;
+  background: rgba(4,6,9,.88); align-items: center; justify-content: center; }
+#fotomodal.on { display: flex; }
+#fotomodal .fbox { display: flex; flex-direction: column; max-width: min(96vw, 1200px);
+  max-height: 94vh; background: var(--panel); border: 1px solid var(--borde);
+  box-shadow: 0 0 46px rgba(0,0,0,.95); }
+#fotomodal .fhead { flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco);
+  font-weight: 700; letter-spacing: .05em; font-size: 15px; }
+#fotomodal .fhead span { flex: 1 1 auto; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+#fotomodal .fclose { flex: 0 0 auto; font: inherit; font-size: 20px; line-height: 1;
+  padding: 0 4px; color: var(--tenue); background: transparent; border: 0; cursor: pointer; }
+#fotomodal .fclose:hover { color: var(--blanco); }
+#fotomodal .fbody { flex: 1 1 auto; min-height: 0; display: flex;
+  align-items: center; justify-content: center; background: var(--fondo-canvas); }
+#fotomodal .fbody img { max-width: 100%; max-height: 84vh; object-fit: contain; display: block; }

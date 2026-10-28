@@ -79,15 +79,52 @@ const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>
 const rowKey = f => (f.callsign || f.icao24 || '') + '|' + (f.ts_start_iso || '');
 const esHoy = iso => dayKey(iso) ===
   (DATA.today || new Date().toLocaleDateString('en-CA'));   // yyyy-mm-dd local
+const FOTOS = {};                        // clave de fila -> {url, titulo}
 function mapLinks(f){
   // Cada día tiene su JSON de trayectos: el mapa se arma con el día de la fila.
-  const k = rowKey(f).replace(/"/g, '&quot;');
-  const link = (modo, txt) => '<a class="mlink" href="#" data-k="' + k +
+  const k = rowKey(f);
+  const kq = k.replace(/"/g, '&quot;');
+  const link = (modo, txt) => '<a class="mlink" href="#" data-k="' + kq +
     '" data-modo="' + modo + '">' + txt + '</a>';
   // El mapa FOV solo aparece si el vuelo entró al sector azimutal de la cámara
   // (aunque no se haya visto: puede haber pasado por debajo o por encima del FOV).
-  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '');
+  let foto = '';
+  if(f.photo && f.photo.url){
+    FOTOS[k] = {url: f.photo.url,
+      titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
+    foto = '<a class="mlink foto" href="#" data-fotok="' + kq + '">FOTO</a>';
+  }
+  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '') + foto;
 }
+
+// Modal de fotografía: se abre desde el link FOTO de la lista de vuelos.
+function abrirFoto(k){
+  const dato = FOTOS[k];
+  if(!dato) return;
+  document.getElementById('ftit').textContent = dato.titulo || 'Fotografía';
+  const img = document.getElementById('fimg');
+  img.src = dato.url;
+  img.alt = dato.titulo || '';
+  document.getElementById('fotomodal').classList.add('on');
+  document.getElementById('fotomodal').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function cerrarFoto(){
+  document.getElementById('fotomodal').classList.remove('on');
+  document.getElementById('fotomodal').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+document.getElementById('fotomodal').addEventListener('click', e => {
+  if(e.target.id === 'fotomodal') cerrarFoto();
+});
+document.getElementById('fclose').addEventListener('click', cerrarFoto);
+document.addEventListener('keydown', e => { if(e.key === 'Escape') cerrarFoto(); });
+document.addEventListener('click', e => {
+  const a = e.target.closest('a.mlink[data-fotok]');
+  if(!a) return;
+  e.preventDefault();
+  abrirFoto(a.dataset.fotok);
+});
 function rowHtml(f, live){
   const flag = f.country
     ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +

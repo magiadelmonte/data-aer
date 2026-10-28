@@ -461,7 +461,9 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  const W = dispW, H = W / ratio;
+  // Que entre en la caja: con la franja de ruta el alto disponible es menor y el
+  // lienzo a todo el ancho se salia del modal (los datos de arriba quedaban cortados).
+  const W = Math.min(dispW, dispH * ratio), H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -748,24 +750,8 @@ function rutaModal(f){
     linea(hora(fa && fa.takeoff), origen) +
     linea(null, destino);
   box.hidden = false;
-  setAcciones(f, 'base');
 }
 
-// Botones de la franja de ruta: TRAYECTO+ (y FOTOGRAFÍA si hay foto). Al abrir una
-// vista se reemplazan por un único VOLVER centrado.
-function setAcciones(f, vista){
-  const franja = document.getElementById('mruta');
-  const acc = document.getElementById('mracc');
-  if(vista === 'base'){
-    franja.classList.remove('volver');
-    acc.innerHTML = '<button type="button" class="mbtn" data-acc="ruta">TRAYECTO+</button>' +
-      ((f && f.photo && f.photo.url)
-        ? '<button type="button" class="mbtn" data-acc="foto">FOTOGRAFÍA</button>' : '');
-  } else {
-    franja.classList.add('volver');
-    acc.innerHTML = '<button type="button" class="mbtn" data-acc="volver">VOLVER</button>';
-  }
-}
 
 // Título del modal: tipo de vuelo · vuelo · bandera + matrícula · fecha y hora.
 function tituloModal(f, modo){
@@ -783,114 +769,6 @@ function tituloModal(f, modo){
   rutaModal(f);
 }
 
-// ============================================================
-// Vistas del modal: trayecto completo (mapa aparte) y foto.
-// En ambas, TRAYECTO+/FOTOGRAFÍA se cambian por un único VOLVER centrado.
-// ============================================================
-let MV_MAP = null, MV_READY = null;
-
-function initMapaRuta(){
-  const m = new maplibregl.Map({
-    container: 'mview',
-    style: {version: 8, sources: {}, layers: [
-      {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]},
-    center: [TRAJ.center_lon || 0, TRAJ.center_lat || 0], zoom: 6,
-    attributionControl: false, interactive: false, fadeDuration: 0,
-  });
-  MV_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
-    .then(r => r.json())
-    .then(st => {
-      const base = JSON.stringify(st);
-      let nivel = 2;
-      m.on('error', e => {
-        const msg = (e && e.error && e.error.message) || '';
-        if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) &&
-           !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
-          nivel--;
-          m.setStyle(estiloMapa(base, nivel), {diff: false});
-        }
-      });
-      m.setStyle(estiloMapa(base, nivel), {diff: false});
-      return new Promise(res => {
-        const check = () => (m.isStyleLoaded() &&
-          (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
-        check();
-      });
-    });
-  return m;
-}
-
-function coordsCompletas(f){
-  const fa = f.fa && f.fa.track;
-  if(Array.isArray(fa) && fa.length > 1) return fa;          // [[lat, lon], ...]
-  return (f.path || []).map(p => [p[0], p[1]]);              // track propio (solo R2)
-}
-
-function trazarCompleto(coords){
-  if(!MV_MAP || !coords || coords.length < 2) return;
-  const data = {type: 'Feature', geometry: {type: 'LineString',
-    coordinates: coords.map(p => [p[1], p[0]])}};
-  if(MV_MAP.getSource('full')){
-    MV_MAP.getSource('full').setData(data);
-  } else {
-    MV_MAP.addSource('full', {type: 'geojson', data: data});
-    MV_MAP.addLayer({id: 'full', type: 'line', source: 'full',
-      layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: {'line-color': '#fff', 'line-width': 1.9, 'line-opacity': .95,
-        'line-dasharray': [.4, 2.2]}});
-  }
-  const lats = coords.map(p => p[0]), lons = coords.map(p => p[1]);
-  MV_MAP.fitBounds([[Math.min.apply(null, lons), Math.min.apply(null, lats)],
-                    [Math.max.apply(null, lons), Math.max.apply(null, lats)]],
-                   {padding: 26, duration: 0});
-}
-
-function verRuta(f){
-  const box = document.querySelector('#modal .mbox');
-  box.classList.remove('view-photo');
-  box.classList.add('view-route');
-  setAcciones(f, 'ruta');
-  if(!MV_MAP) MV_MAP = initMapaRuta();
-  const coords = coordsCompletas(f);
-  MV_READY.then(() => {
-    if(MACTUAL !== f) return;
-    MV_MAP.resize();
-    trazarCompleto(coords);
-  });
-}
-
-function verFoto(f){
-  if(!(f.photo && f.photo.url)) return;
-  const box = document.querySelector('#modal .mbox');
-  box.classList.remove('view-route');
-  box.classList.add('view-photo');
-  const img = document.getElementById('mfotoimg');
-  img.src = f.photo.url;
-  img.alt = [f.callsign, f.registration].filter(Boolean).join(' ');
-  setAcciones(f, 'foto');
-}
-
-function volverVista(f){
-  const box = document.querySelector('#modal .mbox');
-  box.classList.remove('view-route', 'view-photo');
-  setAcciones(f, 'base');
-  if(MODO === 'fov'){
-    MFOV_ON = true;
-    requestAnimationFrame(() => { if(MACTUAL === f) dibujarFov(f); });
-    return;
-  }
-  if(MMAP){ MMAP.resize(); encuadrar(MODO); }
-}
-
-document.getElementById('mracc').addEventListener('click', e => {
-  const b = e.target.closest('button[data-acc]');
-  if(!b || !MACTUAL) return;
-  const acc = b.dataset.acc;
-  if(acc === 'ruta') verRuta(MACTUAL);
-  else if(acc === 'foto') verFoto(MACTUAL);
-  else volverVista(MACTUAL);
-});
-
 let MODO = 'sat';
 function abrirTrayecto(k, modo){
   const f = trajOf(k);
@@ -907,7 +785,6 @@ function mostrarTrayecto(f, modo){
   if(TRAJ_DIAS[day]) TRAJ = TRAJ_DIAS[day];
   if(TRAJ.center_lat == null) return;
   MODO = modo === 'fov' ? 'fov' : 'sat';
-  document.querySelector('#modal .mbox').classList.remove('view-route', 'view-photo');
   tituloModal(f, MODO);
   document.querySelector('#modal .mbox').classList.toggle('fov', MODO === 'fov');
   document.getElementById('modal').classList.add('on');

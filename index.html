@@ -7,7 +7,7 @@
 <title>Observatorio Uritorco</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link rel="stylesheet" href="aer.css?v=20261028k">
+<link rel="stylesheet" href="aer.css?v=20261028m">
 </head>
 <body>
 <header>
@@ -26,23 +26,26 @@
 <div id="modal" aria-hidden="true">
   <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtit">
     <div class="mhead"><div id="mtit"></div><span class="msub" id="msub"></span></div>
-    <div class="mruta" id="mruta" hidden>
-      <div class="mrdatos" id="mrdatos"></div>
-      <div class="mracc" id="mracc"></div>
-    </div>
+    <div class="mruta" id="mruta" hidden><div class="mrdatos" id="mrdatos"></div></div>
     <div id="mmap"></div>
-    <div id="mview"></div>
-    <div id="mfoto"><img id="mfotoimg" alt=""></div>
     <div id="mfovbox"><canvas id="mfov"></canvas></div>
     <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
   </div>
 </div>
 
 
-<script src="aer_iconos.js?v=20261028k"></script>
-<script src="aer_tabla.js?v=20261028k"></script>
-<script src="aer_astro.js?v=20261028k"></script>
-<script src="aer_mapa.js?v=20261028k"></script>
+<div id="fotomodal" aria-hidden="true">
+  <div class="fbox" role="dialog" aria-modal="true" aria-labelledby="ftit">
+    <div class="fhead"><span id="ftit"></span>
+      <button type="button" class="fclose" id="fclose" aria-label="Cerrar">×</button></div>
+    <div class="fbody"><img id="fimg" alt=""></div>
+  </div>
+</div>
+
+<script src="aer_iconos.js?v=20261028m"></script>
+<script src="aer_tabla.js?v=20261028m"></script>
+<script src="aer_astro.js?v=20261028m"></script>
+<script src="aer_mapa.js?v=20261028m"></script>
 <script>
 // Si el shell vino de caché con una versión vieja, se recarga solo con un query
 // nuevo (GitHub Pages cachea 10 min). Una sola vez por build y por sesión.
