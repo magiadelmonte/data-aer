@@ -99,6 +99,10 @@ tbody tr:last-child td { border-bottom: none; }
 .mbox.fov #mfovbox { display: flex; }
 #mfov { display: none; background: var(--fondo-canvas); }
 .mbox.fov #mfov { display: block; }
+/* Ícono de la aeronave en la punta del trayecto FOV (mismo arte que SAT, más chico). */
+.mfovico { position: absolute; z-index: 4; width: 26px; height: 26px;
+  margin: -13px 0 0 -13px; display: none; pointer-events: none; }
+.mfovico .mico { width: 26px; height: 26px; }
 .mlab { color: #fff; opacity: .85; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
 .mlab_km { opacity: .8; font-size: 10px; }        /* distancias: sobre la línea del radio */
 .mlab_card { font-weight: 700; opacity: .9; }     /* cardinales del anillo exterior */

@@ -453,6 +453,7 @@ function sierraFov(g, S, W, H, conRelleno){
 function dibujarFov(f){
   const cv = document.getElementById('mfov'), caja = document.getElementById('mfovbox');
   if(!cv || !caja) return;
+  ocultarIconoFov();               // si este vuelo no tiene punta visible, no queda el ícono anterior
   const F = TRAJ.fov;
   const dispW = caja.clientWidth, dispH = caja.clientHeight;
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
@@ -526,10 +527,10 @@ function dibujarFov(f){
   });
   g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.setLineDash([]); g.stroke();
 
-  // Punta del trayecto: delta abierto con la dirección del vuelo (no sólido).
-  // Se ubica con un margen de seguridad para no quedar pegado al borde cuando el
-  // trayecto sale del encuadre.
-  const MARGEN = 16;
+  // Punta del trayecto: el ícono de la aeronave (mismo arte, categoría y color que
+  // el mapa SAT) con la nariz hacia la dirección del vuelo. Se ubica con un margen
+  // de seguridad para no quedar pegado al borde cuando el trayecto sale del encuadre.
+  const MARGEN = 18;
   let ult = null;
   for(let i = 1; i < MFOV_PTS.length; i++){
     const A = MFOV_PTS[i - 1], B = MFOV_PTS[i];
@@ -541,13 +542,10 @@ function dibujarFov(f){
     }
   }
   if(ult){
+    // En pantalla +y va hacia abajo: el ángulo medido desde el eje x (antihorario en
+    // coordenadas de pantalla) se pasa a giro CSS sumando 90° (la nariz apunta arriba).
     const ang = (ult.dx || ult.dy) ? Math.atan2(ult.dy, ult.dx) : -Math.PI / 2;
-    const L = 10;
-    g.beginPath();
-    g.moveTo(ult.x - Math.cos(ang - .5) * L, ult.y - Math.sin(ang - .5) * L);
-    g.lineTo(ult.x, ult.y);
-    g.lineTo(ult.x - Math.cos(ang + .5) * L, ult.y - Math.sin(ang + .5) * L);
-    g.strokeStyle = '#fff'; g.lineWidth = 1.6; g.setLineDash([]); g.stroke();
+    ponerIconoFov(f, ult.x, ult.y, ang * 180 / Math.PI + 90);
   }
   // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
   sierraFov(g, F.sierra, W, H, true);
@@ -557,6 +555,26 @@ function dibujarFov(f){
   azTags.forEach(t => g.fillText(t.az + '°', t.x, 14));
   g.textAlign = 'left';
   activarHoverFov(cv);
+}
+
+// Ícono de la aeronave sobre el lienzo FOV: es un overlay DOM (no canvas) para
+// reusar el mismo SVG enmascarado y el color por categoría del mapa SAT.
+let MFOV_ICO = null;
+function ponerIconoFov(f, x, y, deg){
+  const caja = document.getElementById('mfovbox'), cv = document.getElementById('mfov');
+  if(!caja || !cv) return;
+  if(!MFOV_ICO){
+    MFOV_ICO = document.createElement('div');
+    MFOV_ICO.className = 'mfovico';
+    caja.appendChild(MFOV_ICO);
+  }
+  MFOV_ICO.innerHTML = iconHTML(f.icon, deg);
+  MFOV_ICO.style.left = (cv.offsetLeft + x) + 'px';
+  MFOV_ICO.style.top = (cv.offsetTop + y) + 'px';
+  MFOV_ICO.style.display = 'block';
+}
+function ocultarIconoFov(){
+  if(MFOV_ICO) MFOV_ICO.style.display = 'none';
 }
 
 function activarHoverFov(cv){
