@@ -120,6 +120,7 @@ tbody tr:last-child td { border-bottom: none; }
   border: 1px solid var(--borde); }
 .mbox.view-route #mmap, .mbox.view-route #mfovbox,
 .mbox.view-photo #mmap, .mbox.view-photo #mfovbox { display: none; }
+.mbox.fov.view-route, .mbox.fov.view-photo { height: min(86vh, 820px); aspect-ratio: auto; }
 .mbox.view-route #mview { display: flex; }
 .mbox.view-photo #mfoto { display: flex; }
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
