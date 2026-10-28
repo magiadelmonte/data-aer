@@ -545,8 +545,7 @@ function dibujarFov(f){
   }
   // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
   sierraFov(g, F.sierra, W, H, true);
-  // Marco del encuadre y grados de acimut en la franja superior.
-  g.strokeStyle = 'rgba(180,150,80,.35)'; g.lineWidth = 1; g.strokeRect(.5, .5, W - 1, H - 1);
+  // Grados de acimut en la franja superior (el marco lo pone la modal).
   g.font = '11px "Courier New", monospace'; g.fillStyle = 'rgba(212,201,176,.7)';
   g.textAlign = 'center';
   azTags.forEach(t => g.fillText(t.az + '°', t.x, 14));
