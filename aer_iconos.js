@@ -8,7 +8,9 @@ const ICONS = {
   airliner:   { color: '#e8e8e8', rot: true },
   bizjet:     { color: '#d4c9b0', rot: true },
   cargo:      { color: '#c8a15a', rot: true },
-  military:   { color: '#d05a5a', rot: true },   // provisorio: se define en el paso militar
+  military:   { color: '#d05a5a', rot: true },
+  c130:       { color: '#d05a5a', rot: true },   // Hercules (transporte militar)
+  f16:        { color: '#d05a5a', rot: true },   // caza
   light:      { color: '#a9c6d8', rot: true },
   turboprop:  { color: '#b6c9a5', rot: true },
   helicopter: { color: '#cfcfcf', rot: true },
