@@ -472,7 +472,9 @@ function dibujarFov(f){
   const azL = F.az0 - F.fovH / 2, azR = F.az0 + F.fovH / 2;
   g.font = '11px "Courier New", monospace';
 
-  // Grilla: azimut cada 10°, elevación cada 5°.
+  // Grilla: azimut cada 10°, elevación cada 5°. Los grados de acimut van en la franja
+  // superior (se dibujan al final, para que el trayecto y el cerro no los tapen).
+  const azTags = [];
   for(let az = Math.ceil(azL / 10) * 10; az <= azR; az += 10){
     g.beginPath();
     for(let el = bot; el <= top; el += 1){
@@ -481,10 +483,8 @@ function dibujarFov(f){
       if(el === bot) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
     }
     g.strokeStyle = 'rgba(212,201,176,.14)'; g.lineWidth = 1; g.stroke();
-    const lp = P(az, bot + 1.5);
-    if(lp && lp[0] > 16 && lp[0] < W - 26){
-      g.fillStyle = 'rgba(212,201,176,.45)'; g.fillText(az + '°', lp[0] + 3, H - 7);
-    }
+    const lp = P(az, top - .5);
+    if(lp && lp[0] > 16 && lp[0] < W - 16) azTags.push({x: lp[0], az: az});
   }
   for(let el = Math.ceil(bot / 5) * 5; el <= top; el += 5){
     g.beginPath();
@@ -545,10 +545,12 @@ function dibujarFov(f){
   }
   // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
   sierraFov(g, F.sierra, W, H, true);
-  // Marco y rótulo del encuadre.
+  // Marco del encuadre y grados de acimut en la franja superior.
   g.strokeStyle = 'rgba(180,150,80,.35)'; g.lineWidth = 1; g.strokeRect(.5, .5, W - 1, H - 1);
-  g.fillStyle = 'rgba(212,201,176,.62)'; g.font = '11px "Courier New", monospace';
-  g.fillText('Cámara · az ' + F.az0 + '° · ' + F.fovH + '° × ' + F.fovV + '°', 9, 15);
+  g.font = '11px "Courier New", monospace'; g.fillStyle = 'rgba(212,201,176,.7)';
+  g.textAlign = 'center';
+  azTags.forEach(t => g.fillText(t.az + '°', t.x, 14));
+  g.textAlign = 'left';
   activarHoverFov(cv);
 }
 
