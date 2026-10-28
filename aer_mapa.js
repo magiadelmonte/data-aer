@@ -518,14 +518,15 @@ function dibujarFov(f){
     const q = el == null ? null : P(bearing(clat, clon, p[0], p[1]), el);
     return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el};
   });
-  // En la vista de la cámara el trazo es siempre continuo.
+  // Trayecto punteado y fino (la mitad del espesor del trazo del mapa SAT).
   g.beginPath(); let pen = false;
   lls.forEach((p, i) => {
     const q = MFOV_PTS[i];
     if(q.x == null){ pen = false; return; }
     if(!pen){ g.moveTo(q.x, q.y); pen = true; } else g.lineTo(q.x, q.y);
   });
-  g.strokeStyle = '#fff'; g.lineWidth = 1.8; g.setLineDash([]); g.stroke();
+  g.strokeStyle = '#fff'; g.lineWidth = .9; g.setLineDash([2, 3]); g.stroke();
+  g.setLineDash([]);
 
   // Punta del trayecto: el ícono de la aeronave (mismo arte, categoría y color que
   // el mapa SAT) con la nariz hacia la dirección del vuelo. Se ubica con un margen
