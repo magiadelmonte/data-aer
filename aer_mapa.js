@@ -708,6 +708,40 @@ function encuadrar(modo){
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
   c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
+// Linea 2 del modal: origen -> destino completos + horas de despegue/aterrizaje (UTC-3).
+// Prefiere la ficha de FlightAware (`fa`); si no hay, cae a la ruta de adsbdb (`route`).
+function rutaModal(f){
+  const box = document.getElementById('mruta');
+  const fa = f.fa || null;
+  const ruta = fa || f.route || null;
+  const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
+  if(!origen && !destino){ box.hidden = true; box.innerHTML = ''; return; }
+  const aeropuerto = a => {
+    if(!a) return '?';
+    const cod = [a.iata, a.icao].filter(Boolean).join('/');
+    const partes = [a.name, [a.municipality, a.country_name || a.country]
+      .filter(Boolean).join(', ')].filter(Boolean);
+    return (cod ? '<i>' + esc(cod) + '</i> ' : '') + esc(partes.join(' · '));
+  };
+  const hora = iso => {
+    if(!iso) return null;
+    const m = String(iso).match(/T(\d{2}:\d{2})/);      // ISO local (UTC-3) que manda el server
+    return m ? m[1] : null;
+  };
+  const despegue = hora(fa && fa.takeoff), aterrizaje = hora(fa && fa.landing);
+  const horas = (despegue || aterrizaje)
+    ? '<span class="mrh">' +
+      (despegue ? 'despegue <b>' + despegue + '</b>' : '') +
+      (despegue && aterrizaje ? ' · ' : '') +
+      (aterrizaje ? 'aterrizaje <b>' + aterrizaje + '</b>' : '') +
+      '</span>'
+    : '';
+  box.innerHTML = '<span class="mrt">' + aeropuerto(origen) + '</span>' +
+                  '<span class="mrt">→</span>' +
+                  '<span class="mrt">' + aeropuerto(destino) + '</span>' + horas;
+  box.hidden = false;
+}
+
 // Título del modal: tipo de vuelo · vuelo · bandera + matrícula · fecha y hora.
 function tituloModal(f, modo){
   const tipo = f.ac_type_label || f.type_label || '';
@@ -722,6 +756,7 @@ function tituloModal(f, modo){
     ((flag || f.registration)
       ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
   document.getElementById('msub').textContent = fechaHora(f.ts_start_iso);
+  rutaModal(f);
 }
 
 let MODO = 'sat';

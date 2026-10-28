@@ -91,6 +91,14 @@ tbody tr:last-child td { border-bottom: none; }
 .mhead .mreg { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; letter-spacing: .03em; font-size: 13px; }
 .mhead .mreg .flag { margin: 0; }
 .mhead .msub { color: var(--tenue); font-weight: 400; letter-spacing: .03em; font-size: 13px; margin-left: auto; }
+.mruta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  padding: 6px 12px; border-bottom: 1px solid var(--borde); color: var(--tenue);
+  font-size: 12px; letter-spacing: .02em; line-height: 1.45; }
+.mruta[hidden] { display: none; }
+.mruta .mrt { color: var(--blanco); }
+.mruta .mrt i { font-style: normal; color: var(--acento); }
+.mruta .mrh { margin-left: auto; white-space: nowrap; }
+.mruta .mrh b { color: var(--blanco); font-weight: 600; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
 /* Vista FOV: el encuadre 16:9 de la cámara, con el mismo contorno de sierras que SAT. */
 #mfovbox { display: none; flex: 1 1 auto; min-height: 0; position: relative;
