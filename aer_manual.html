@@ -44,15 +44,18 @@
       <input id="matricula" type="text" placeholder="LV-S164" autocomplete="off">
       <label for="foto">URL de foto</label>
       <input id="foto" type="text" placeholder="https://cdn.jetphotos.com/full/..." autocomplete="off">
+      <label><input type="checkbox" id="dl" checked> Descargar la foto a aer/web/img/photos/ y commitearla a GitHub (si está desmarcado: solo uso la URL pública)</label>
     </fieldset>
     <button id="btn" type="submit">APLICAR</button>
   </form>
   <div id="out">Sin correr todavía.</div>
   <div class="note">
     El backend identifica los vuelos que matcheen por <b>hex</b> y/o <b>matrícula</b> y los
-    actualiza con la ficha local (cache). La foto se guarda con <code>source=manual</code> y no
-    se re-consultan los barridos. El JSON publicado en <code>data-aer</code> se regenera con
-    <code>publish_aer.py</code> y se publica en GitHub Pages.
+    actualiza con la ficha local (cache). La foto se guarda con <code>source=manual</code> y
+    no se re-consultan los barridos. El JSON publicado en <code>data-aer</code> se regenera con
+    <code>publish_aer.py</code> y se publica en GitHub Pages. Con el check marcado la foto se
+    descarga a <code>aer/web/img/photos/</code> y queda commiteada; con el check desmarcado se
+    usa solo la URL pública del sitio.
   </div>
 </main>
 
@@ -71,6 +74,7 @@ document.getElementById('f').addEventListener('submit', async e => {
         hex: document.getElementById('hex').value.trim(),
         matricula: document.getElementById('matricula').value.trim(),
         foto: document.getElementById('foto').value.trim(),
+        download: document.getElementById('dl').checked,
       }),
     });
     const j = await r.json();
