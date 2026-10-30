@@ -775,7 +775,8 @@ function tituloModal(f, modo){
     '<span class="mcall">' + esc(f.callsign || '') + '</span>' +
     ((flag || f.registration)
       ? '<span class="mreg">' + flag + esc(f.registration || '') + '</span>' : '');
-  document.getElementById('msub').textContent = fechaHora(f.ts_start_iso);
+  // misma hora que la columna "Hora" de la tabla (paso por la zona)
+  document.getElementById('msub').textContent = fechaHora(f.ts_paso_iso || f.ts_start_iso);
   rutaModal(f, modo);
 }
 
