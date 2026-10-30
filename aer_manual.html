@@ -64,6 +64,12 @@
 </main>
 
 <script>
+// Forzar a uppercase los campos operativos (salvo la URL de foto).
+const uppers = ['hex', 'matricula', 'callsign', 'tipo'];
+for (const id of uppers) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
+}
 document.getElementById('f').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('btn');
