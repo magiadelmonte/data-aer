@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Observatorio Uritorco · Aeronave</title>
+<style>
+  html, body { margin: 0; min-height: 100%; background: #0d0d12; color: #e8e8f0;
+    font-family: 'Courier New', monospace; }
+  header { padding: 26px 28px 10px; }
+  header h1 { font-size: 22px; letter-spacing: 3px; margin: 0; }
+  header .sub { color: #9a9ab0; font-size: 13px; margin-top: 6px; }
+  header .rule { border-top: 1px solid #26263a; margin-top: 18px; }
+  main { padding: 18px 28px 60px; max-width: 720px; }
+  fieldset { border: 1px solid #26263a; border-radius: 6px; margin: 0 0 16px; padding: 14px 16px 16px; }
+  legend { color: #9a9ab0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 0 8px; }
+  label { display: block; color: #c9c9de; font-size: 13px; margin: 10px 0 4px; }
+  input, textarea { width: 100%; box-sizing: border-box; background: #16161f; color: #e8e8f0;
+    border: 1px solid #2c2c44; border-radius: 4px; padding: 9px 10px; font: inherit; font-size: 14px; }
+  textarea { font-family: inherit; min-height: 90px; }
+  button { margin-top: 16px; background: #16202e; color: #9fd0ff; border: 1px solid #2c5a80;
+    border-radius: 4px; padding: 10px 18px; font: inherit; font-size: 14px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #out { margin-top: 18px; background: #0a0a0f; border: 1px solid #26263a; border-radius: 6px; padding: 14px; font-size: 12.5px; white-space: pre-wrap; color: #c9d6ea; min-height: 30px; }
+  #out.ok { border-color: #2c6b3c; }
+  #out.err { border-color: #7a2c2c; }
+  .note { color: #9a9ab0; font-size: 12px; margin-top: 22px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Actualización manual · AER</h1>
+  <div class="sub">Identificación y foto de una aeronave (hex / matrícula / url de foto)</div>
+  <div class="rule"></div>
+</header>
+<main>
+  <form id="f">
+    <fieldset>
+      <legend>Aeronave</legend>
+      <label for="hex">Hex ICAO (24 bits)</label>
+      <input id="hex" type="text" placeholder="E20116" autocomplete="off">
+      <label for="matricula">Matrícula</label>
+      <input id="matricula" type="text" placeholder="LV-S164" autocomplete="off">
+      <label for="foto">URL de foto</label>
+      <input id="foto" type="text" placeholder="https://cdn.jetphotos.com/full/..." autocomplete="off">
+    </fieldset>
+    <button id="btn" type="submit">APLICAR</button>
+  </form>
+  <div id="out">Sin correr todavía.</div>
+  <div class="note">
+    El backend identifica los vuelos que matcheen por <b>hex</b> y/o <b>matrícula</b> y los
+    actualiza con la ficha local (cache). La foto se guarda con <code>source=manual</code> y no
+    se re-consultan los barridos. El JSON publicado en <code>data-aer</code> se regenera con
+    <code>publish_aer.py</code> y se publica en GitHub Pages.
+  </div>
+</main>
+
+<script>
+document.getElementById('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  const out = document.getElementById('out');
+  out.className = 'out';
+  out.textContent = 'Aplicando...';
+  try {
+    const r = await fetch('/aer/aer-manual-update', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        hex: document.getElementById('hex').value.trim(),
+        matricula: document.getElementById('matricula').value.trim(),
+        foto: document.getElementById('foto').value.trim(),
+      }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(JSON.stringify(j));
+    out.className = 'out ok';
+    out.textContent = 'OK ' + JSON.stringify(j);
+  } catch (err) {
+    out.className = 'out err';
+    out.textContent = 'ERROR ' + (err && err.message ? err.message : String(err));
+  }
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>
