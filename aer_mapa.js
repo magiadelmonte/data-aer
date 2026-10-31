@@ -732,9 +732,11 @@ function rutaModal(f, modo){
   const fa = f.fa || null;
   const ruta = fa || f.route || null;
   const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
-  if(!origen && !destino && !(f.photo && f.photo.url)){
-    box.hidden = true;
+  if(!origen && !destino){
+    // Sin ruta: se muestra solo el boton SAT/FOV (la caja se oculta si no hay
+    // ninguno de los dos, para no dejar una franja vacia en el modal).
     document.getElementById('mrdatos').innerHTML = '';
+    box.hidden = !hayFov;
     return;
   }
   const hora = iso => {
