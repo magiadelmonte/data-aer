@@ -177,7 +177,7 @@ function liveTrayectos(flights){
       ac_type_label: f.ac_type_label, registration: f.registration, country: f.country,
       icon: f.icon || 'airliner',
       path: (f.path || []).map(p => [p.lat, p.lon, p.alt_m,
-        p.in_fov === false ? 0 : 1, p.elev_deg])};
+        p.in_fov === false ? 0 : 1, p.elev_deg, p.hora])};
   });
   return out;
 }
