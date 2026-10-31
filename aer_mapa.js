@@ -721,6 +721,14 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g,
 // Prefiere la ficha de FlightAware (`fa`); si no hay, cae a la ruta de adsbdb (`route`).
 function rutaModal(f, modo){
   const box = document.getElementById('mruta');
+  // El boton SAT/FOV no depende de la ruta: se arma siempre (salvo que el vuelo
+  // no tenga FOV) y antes de cualquier salida temprana por falta de datos.
+  const hayFov = !SIN_FOV;
+  document.getElementById('mracc').innerHTML = hayFov
+    ? '<button type="button" class="mbtn" data-modo="' +
+      (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
+      (modo === 'fov' ? 'SAT' : 'FOV') + '</button>'
+    : '';
   const fa = f.fa || null;
   const ruta = fa || f.route || null;
   const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
@@ -753,14 +761,6 @@ function rutaModal(f, modo){
     (salida ? '<span class="mh">' + esc(salida) + '</span>' : '') +
     punto(origen) + '<span class="marr">→</span>' + punto(destino) +
     '</div>';
-  // Boton para saltar al otro mapa del mismo vuelo. Si el vuelo no entro al FOV
-  // (la lista lo sabe y pasa data-nofov), no se ofrece el mapa FOV.
-  const hayFov = !SIN_FOV;
-  document.getElementById('mracc').innerHTML = hayFov
-    ? '<button type="button" class="mbtn" data-modo="' +
-      (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
-      (modo === 'fov' ? 'SAT' : 'FOV') + '</button>'
-    : '';
   box.hidden = false;
 }
 
