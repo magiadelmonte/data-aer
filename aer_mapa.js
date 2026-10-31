@@ -300,7 +300,7 @@ function tramosFov(lls){
   const F = TRAJ.fov;
   if(!F || lls.length < 2 || typeof bearing !== 'function' || typeof distKm !== 'function')
     return tramosFlags(lls);
-  const half = F.fovH / 2, dmax = F.radius_km || 65;
+  const half = F.fovH / 2, dmax = F.radius_km || 65, top = F.el_max;
   // Valores de cada vértice que definen el FOV, con el azimut relativo al centro
   // desenvuelto para que un cruce por el sur no salte de +180 a -180.
   const S = lls.map(p => ({
@@ -314,11 +314,14 @@ function tramosFov(lls){
   const inside = r => Math.abs(r) <= half;   // sector azimutal (la altura se evalúa aparte)
   const dentro = (r, d) => inside(r) && d <= dmax;
   const out = [];
-  const push = (ok, pts) => {
+  // `ok` = trazo a opacidad plena (dentro del sector o por encima del techo);
+  // `alto` = por encima del techo del encuadre: se pinta de rojo (pasa sobre la cámara).
+  const push = (ok, alto, pts) => {
     if(pts.length < 2) return;
     const last = out[out.length - 1];
-    if(last && last.ok === ok) last.pts = last.pts.concat(pts.slice(1));
-    else out.push({ok: ok, pts: pts});
+    if(last && last.ok === ok && last.alto === alto)
+      last.pts = last.pts.concat(pts.slice(1));
+    else out.push({ok: ok, alto: alto, pts: pts});
   };
   for(let i = 0; i < lls.length - 1; i++){
     const a = lls[i], b = lls[i + 1], sa = S[i], sb = S[i + 1];
@@ -333,6 +336,7 @@ function tramosFov(lls){
     addT(sa.r, sb.r, -half);
     addT(sa.r, sb.r, half);
     addT(sa.d, sb.d, dmax);
+    addT(sa.e, sb.e, top);              // corte exacto en el techo del encuadre
     ts.sort((x, y) => x - y);
     const lim = ts.filter((x, j) => j === 0 || x - ts[j - 1] > 1e-7);
     const at = t => {
@@ -345,7 +349,9 @@ function tramosFov(lls){
       const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
       const r = sa.r + tm * (sb.r - sa.r);
       const d = sa.d + tm * (sb.d - sa.d);
-      push(dentro(r, d), [at(t0), at(t1)]);
+      const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
+      const alto = e != null && top != null && e > top;
+      push(dentro(r, d) || alto, alto, [at(t0), at(t1)]);
     }
   }
   return out;
@@ -365,14 +371,15 @@ function dibujarTrayecto(f){
     return null;
   };
   // Todo el trayecto va punteado, de principio a fin. Fuera del FOV el punteado
-  // es un 50% más liviano; adentro, opacidad normal (sin importar la elevación).
+  // es un 50% más liviano; adentro, opacidad normal. Los tramos por encima del
+  // techo del encuadre van en rojo: la cámara no los ve (el vuelo pasa por arriba).
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: {'line-color': '#fff', 'line-width': 1.6,
+      paint: {'line-color': tr.alto ? '#ff4d4d' : '#fff', 'line-width': 1.6,
         'line-opacity': tr.ok ? 1 : .45, 'line-dasharray': [.4, 2.2]}});
     MTRAJ_IDS.push(id);
   });
@@ -653,6 +660,10 @@ function activarHover(){
     const lon = P.lon + best.t * (Q.lon - P.lon), lat = P.lat + best.t * (Q.lat - P.lat);
     MMAP.getSource('trajhover').setData({type: 'Feature',
       geometry: {type: 'Point', coordinates: [lon, lat]}});
+    // El punto de hover también se pinta de rojo si está sobre el techo del encuadre.
+    const alto = elev != null && TRAJ.fov && TRAJ.fov.el_max != null
+      && elev > TRAJ.fov.el_max;
+    MMAP.setPaintProperty('trajhover', 'circle-color', alto ? '#ff4d4d' : '#fff');
     MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m' +
       (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°');
     MTIP.style.display = 'block';
