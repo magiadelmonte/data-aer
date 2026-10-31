@@ -314,8 +314,9 @@ function tramosFov(lls){
   const inside = r => Math.abs(r) <= half;   // sector azimutal (la altura se evalúa aparte)
   const dentro = (r, d) => inside(r) && d <= dmax;
   const out = [];
-  // `ok` = trazo a opacidad plena (dentro del sector o por encima del techo);
-  // `alto` = por encima del techo del encuadre: se pinta de rojo (pasa sobre la cámara).
+  // `ok` = trazo a opacidad plena (dentro del sector FOV);
+  // `alto` = dentro del sector y por encima del techo del encuadre: se pinta de rojo
+  // (pasa sobre la cámara). Fuera del sector FOV nunca va rojo: no está en cuadro.
   const push = (ok, alto, pts) => {
     if(pts.length < 2) return;
     const last = out[out.length - 1];
@@ -350,8 +351,9 @@ function tramosFov(lls){
       const r = sa.r + tm * (sb.r - sa.r);
       const d = sa.d + tm * (sb.d - sa.d);
       const e = (sa.e == null || sb.e == null) ? null : sa.e + tm * (sb.e - sa.e);
-      const alto = e != null && top != null && e > top;
-      push(dentro(r, d) || alto, alto, [at(t0), at(t1)]);
+      const cuadro = dentro(r, d);
+      const alto = cuadro && e != null && top != null && e > top;
+      push(cuadro, alto, [at(t0), at(t1)]);
     }
   }
   return out;
@@ -371,8 +373,9 @@ function dibujarTrayecto(f){
     return null;
   };
   // Todo el trayecto va punteado, de principio a fin. Fuera del FOV el punteado
-  // es un 50% más liviano; adentro, opacidad normal. Los tramos por encima del
-  // techo del encuadre van en rojo: la cámara no los ve (el vuelo pasa por arriba).
+  // es un 50% más liviano; adentro, opacidad normal. Dentro del sector FOV, los
+  // tramos por encima del techo del encuadre van en rojo: la cámara no los ve
+  // (el vuelo pasa por arriba). Fuera del sector no hay rojo: no está en cuadro.
   tramosFov(lls).forEach((tr, i) => {
     const id = 'traj' + i;
     MMAP.addSource(id, {type: 'geojson', data: {type: 'Feature',
@@ -660,9 +663,16 @@ function activarHover(){
     const lon = P.lon + best.t * (Q.lon - P.lon), lat = P.lat + best.t * (Q.lat - P.lat);
     MMAP.getSource('trajhover').setData({type: 'Feature',
       geometry: {type: 'Point', coordinates: [lon, lat]}});
-    // El punto de hover también se pinta de rojo si está sobre el techo del encuadre.
-    const alto = elev != null && TRAJ.fov && TRAJ.fov.el_max != null
-      && elev > TRAJ.fov.el_max;
+    // El punto de hover se pinta de rojo sólo dentro del sector FOV y sobre el techo
+    // del encuadre (fuera del sector no está en cuadro, aunque esté alto).
+    const F = TRAJ.fov;
+    let alto = false;
+    if(F && elev != null && F.el_max != null && elev > F.el_max
+        && typeof bearing === 'function' && typeof distKm === 'function'){
+      const rel = ((bearing(TRAJ.center_lat, TRAJ.center_lon, lat, lon) - F.az0 + 540) % 360) - 180;
+      alto = Math.abs(rel) <= F.fovH / 2
+        && distKm(lat, lon, TRAJ.center_lat, TRAJ.center_lon) <= (F.radius_km || 65);
+    }
     MMAP.setPaintProperty('trajhover', 'circle-color', alto ? '#ff4d4d' : '#fff');
     MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m' +
       (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°');
