@@ -344,7 +344,8 @@ function tramosFov(lls){
       const e = (sa.e == null || sb.e == null) ? null : sa.e + t * (sb.e - sa.e);
       const alt = (a[2] == null || b[2] == null) ? (a[2] == null ? b[2] : a[2])
                                                 : a[2] + t * (b[2] - a[2]);
-      return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), alt, 1, e];
+      const hora = (t < .5 ? a[5] : b[5]) || null;
+      return [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), alt, 1, e, hora];
     };
     for(let j = 0; j < lim.length - 1; j++){
       const t0 = lim[j], t1 = lim[j + 1], tm = (t0 + t1) / 2;
@@ -361,7 +362,7 @@ function tramosFov(lls){
 
 function dibujarTrayecto(f){
   limpiarTrayecto();
-  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4]]);
+  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4], p[5]]);
   const altOf = i => {              // altura (m): si falta el dato se arrastra el último conocido
     for(let j = i; j >= 0; j--) if(lls[j][2] != null) return lls[j][2];
     for(let j = i; j < lls.length; j++) if(lls[j][2] != null) return lls[j][2];
@@ -389,7 +390,7 @@ function dibujarTrayecto(f){
   // Altura y altura relativa en cada vértice, para el globo del hover.
   MHOVER = lls.map((p, i) => ({lat: p[0], lon: p[1],
     alt: p[2] != null ? p[2] : altOf(i),
-    el: p[4] != null ? p[4] : elOf(i)}));
+    el: p[4] != null ? p[4] : elOf(i), hora: p[5] || null}));
   const hasAlt = lls.some(p => p[2] != null);
   if(!hasAlt) MHOVER = null;
   MMAP.addSource('trajhover', {type: 'geojson', data: {type: 'FeatureCollection', features: []}});
@@ -526,12 +527,13 @@ function dibujarFov(f){
   sierraFov(g, F.sierra, W, H, false);
 
   // Trayecto: continuo dentro del FOV, punteado afuera; se corta en el cruce real.
-  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4]]);
+  const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4], p[5]]);
   const clat = TRAJ.center_lat, clon = TRAJ.center_lon;
   MFOV_PTS = lls.map((p, i) => {
     const el = elDe(lls, i);
     const q = el == null ? null : P(bearing(clat, clon, p[0], p[1]), el);
-    return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el};
+    return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el,
+      hora: p[5] || null};
   });
   // Trayecto punteado y fino (la mitad del espesor del trazo del mapa SAT).
   g.beginPath(); let pen = false;
@@ -608,10 +610,12 @@ function activarHoverFov(cv){
     MFOV_PTS.forEach(p => {
       if(p.x == null || p.x < 0 || p.x > W || p.y < 0 || p.y > H) return;
       const d = Math.hypot(e.offsetX - p.x, e.offsetY - p.y);
-      if(!best || d < best.d) best = {d: d, x: p.x, y: p.y, alt: p.alt, el: p.el};
+      if(!best || d < best.d) best = {d: d, x: p.x, y: p.y, alt: p.alt, el: p.el,
+        hora: p.hora};
     });
     if(!best || best.d > 16 || best.alt == null){ MFOV_TIP.style.display = 'none'; return; }
-    MFOV_TIP.textContent = Math.round(best.alt).toLocaleString('es-AR') + ' m' +
+    MFOV_TIP.textContent = (best.hora ? best.hora + ' · ' : '') +
+      Math.round(best.alt).toLocaleString('es-AR') + ' m' +
       (best.el == null ? '' : ' · ' + (Math.round(best.el * 10) / 10)
         .toLocaleString('es-AR') + '°');
     MFOV_TIP.style.display = 'block';
@@ -674,7 +678,9 @@ function activarHover(){
         && distKm(lat, lon, TRAJ.center_lat, TRAJ.center_lon) <= (F.radius_km || 65);
     }
     MMAP.setPaintProperty('trajhover', 'circle-color', alto ? '#ff4d4d' : '#fff');
-    MTIP.textContent = Math.round(alt).toLocaleString('es-AR') + ' m' +
+    const hora = (best.t < .5 ? P.hora : Q.hora) || null;
+    MTIP.textContent = (hora ? hora + ' · ' : '') +
+      Math.round(alt).toLocaleString('es-AR') + ' m' +
       (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°');
     MTIP.style.display = 'block';
     const W = MMAP.getContainer().clientWidth, tw = MTIP.offsetWidth;
