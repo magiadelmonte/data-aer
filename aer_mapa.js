@@ -98,9 +98,8 @@ function cargarDia(day, force){
   if(!day) return Promise.resolve(null);
   if(!force && TRAJ_DIAS[day]) return Promise.resolve(TRAJ_DIAS[day]);
   if(!force && TRAJ_PEDIDOS[day]) return TRAJ_PEDIDOS[day];
-  const pedido = fetch('trayectos_' + day.replace(/-/g, '') + '.json?_=' + Date.now(),
-                       {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  // getJson() (aer_tabla.js) reintenta 3 veces: el publish reescribe el día entero.
+  const pedido = getJson('trayectos_' + day.replace(/-/g, '') + '.json')
     .then(j => {
       j = j || {flights: []};
       Object.keys(TKEY).forEach(k => { if(diaDeClave(k) === day) delete TKEY[k]; });
