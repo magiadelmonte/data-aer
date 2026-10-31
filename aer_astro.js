@@ -14,8 +14,12 @@
 //
 // Depende de: aer_mapa.js (llama a `astroDibujar` desde `dibujarFov`).
 // ============================================================
-const ASTRO_CFG_URL = 'astro.json';           // ventana nocturna + colores
-const ASTRO_CAT_URL = 'catalogo_astro.json';  // copia del catálogo de data-sat
+// `window.ASTRO_BASE` permite reusar este módulo desde otra ruta (p. ej. los
+// overlays de /frontend/, que apuntan a `/aer/web/`). Por defecto, relativo a la
+// página (el sitio de AER y data-aer lo sirven al lado).
+const ASTRO_BASE = (typeof window !== 'undefined' && window.ASTRO_BASE) || '';
+const ASTRO_CFG_URL = ASTRO_BASE + 'astro.json';           // ventana nocturna + colores
+const ASTRO_CAT_URL = ASTRO_BASE + 'catalogo_astro.json';  // copia del catálogo de data-sat
 const ASTRO = {cfg: null, cat: null, pidiendo: null, cbs: [], error: false};
 
 const ASTRO_D2R = Math.PI / 180, ASTRO_R2D = 180 / Math.PI;
