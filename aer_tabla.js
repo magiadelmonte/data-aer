@@ -98,7 +98,10 @@ function mapLinks(f){
     '" data-modo="' + modo + '">' + txt + '</a>';
   // El mapa FOV solo aparece si el vuelo entró al sector azimutal de la cámara
   // (aunque no se haya visto: puede haber pasado por debajo o por encima del FOV).
-  return link('sat', 'SAT') + (f.fov_az ? link('fov', 'FOV') : '');
+  // Si no entró, el link SAT le pasa `data-nofov` a la modal para que no ofrezca FOV.
+  const sat = link('sat', 'SAT').replace('data-modo="sat"',
+    'data-modo="sat"' + (f.fov_az ? '' : ' data-nofov="1"'));
+  return sat + (f.fov_az ? link('fov', 'FOV') : '');
 }
 
 // Modal de fotografía: se abre desde el link FOTO de la lista de vuelos.
@@ -298,36 +301,8 @@ function loadWeek(first){
 }
 function tickReloj(){
   const d = new Date();
-  const el = document.getElementById('reloj');
-  if(!el.dataset.ready){
-    el.innerHTML = '<div class="fecha"></div><div class="hora"></div><div class="ultima" id="relojUlt"></div>';
-    el.dataset.ready = '1';
-    cargarUltima();
-  }
-  el.querySelector('.fecha').textContent = d.toLocaleDateString('es-AR');
-  el.querySelector('.hora').textContent = d.toLocaleTimeString('es-AR', {hour12: false});
-}
-// Fecha y hora del ultimo commit de data-aer en GitHub (debajo del reloj).
-let ultimaGH = null;
-const TZ_AR = 'America/Argentina/Buenos_Aires';
-function pintarUltima(){
-  const el = document.getElementById('relojUlt');
-  if(!el || !ultimaGH) return;
-  const d = new Date(ultimaGH);
-  if(isNaN(d)) return;
-  el.textContent = d.toLocaleDateString('es-AR', {timeZone: TZ_AR}) + ' · ' +
-                   d.toLocaleTimeString('es-AR', {hour12: false, timeZone: TZ_AR});
-  el.title = 'Ultima actualizacion en GitHub (data-aer)';
-}
-function cargarUltima(){
-  fetch('https://api.github.com/repos/magiadelmonte/data-aer/commits/main', {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : null)
-    .then(j => {
-      const c = j && j.commit;
-      ultimaGH = c && (c.committer && c.committer.date || c.author && c.author.date);
-      pintarUltima();
-    })
-    .catch(() => {});
+  document.getElementById('reloj').innerHTML = '<div class="fecha">' + d.toLocaleDateString('es-AR') +
+    '</div><div class="hora">' + d.toLocaleTimeString('es-AR', {hour12: false}) + '</div>';
 }
 tickReloj(); setInterval(tickReloj, 1000);
 

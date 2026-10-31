@@ -28,7 +28,6 @@ header .rule { display: none; }
 /* Courier New es monoespaciada: fecha (10 car.) y hora (8 car.) ocupan el mismo ancho si hora = fecha x 10/8 */
 #reloj .fecha { font-size: 22px; }
 #reloj .hora { font-size: 27.5px; line-height: 1.1; color: inherit; }
-#reloj .ultima { font-size: 9.5px; color: var(--tenue); margin-top: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 main { max-width: 1120px; margin: 0 auto; }
 .day { background: var(--panel); border: 1px solid var(--borde); margin: 0 0 22px; overflow: hidden; }
 .day-title {
@@ -165,7 +164,6 @@ footer a { color: var(--acento); }
   #vivo { font-size: 10px; height: 40px; right: 8px; padding: 0 8px; }
   #reloj .fecha { font-size: 16px; }
   #reloj .hora { font-size: 20px; }
-  #reloj .ultima { font-size: 8.5px; }
   th, td { padding: 6px 8px; font-size: 12px; }
   .day-body { overflow-x: auto; }
 }

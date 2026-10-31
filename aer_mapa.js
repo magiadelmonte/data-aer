@@ -753,11 +753,14 @@ function rutaModal(f, modo){
     (salida ? '<span class="mh">' + esc(salida) + '</span>' : '') +
     punto(origen) + '<span class="marr">→</span>' + punto(destino) +
     '</div>';
-  // boton para saltar al otro mapa del mismo vuelo
-  document.getElementById('mracc').innerHTML =
-    '<button type="button" class="mbtn" data-modo="' +
-    (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
-    (modo === 'fov' ? 'SAT' : 'FOV') + '</button>';
+  // Boton para saltar al otro mapa del mismo vuelo. Si el vuelo no entro al FOV
+  // (la lista lo sabe y pasa data-nofov), no se ofrece el mapa FOV.
+  const hayFov = !SIN_FOV;
+  document.getElementById('mracc').innerHTML = hayFov
+    ? '<button type="button" class="mbtn" data-modo="' +
+      (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
+      (modo === 'fov' ? 'SAT' : 'FOV') + '</button>'
+    : '';
   box.hidden = false;
 }
 
@@ -781,21 +784,24 @@ function tituloModal(f, modo){
 }
 
 let MODO = 'sat';
-function abrirTrayecto(k, modo){
+let SIN_FOV = false;   // true: el vuelo no tiene FOV, la modal no ofrece ese mapa
+function abrirTrayecto(k, modo, nofov){
+  if(nofov) modo = 'sat';
   const f = trajOf(k);
-  if(f){ mostrarTrayecto(f, modo); return; }
+  if(f){ mostrarTrayecto(f, modo, nofov); return; }
   // Día todavía no bajado: se pide su JSON y se abre cuando llega.
   cargarDia(diaDeClave(k)).then(() => {
     const g = trajOf(k);
-    if(g) mostrarTrayecto(g, modo);
+    if(g) mostrarTrayecto(g, modo, nofov);
   }).catch(() => {});
 }
 
-function mostrarTrayecto(f, modo){
+function mostrarTrayecto(f, modo, nofov){
   const day = diaDeClave(f.k);
   if(TRAJ_DIAS[day]) TRAJ = TRAJ_DIAS[day];
   if(TRAJ.center_lat == null) return;
-  MODO = modo === 'fov' ? 'fov' : 'sat';
+  SIN_FOV = !!nofov || modo === 'nofov';
+  MODO = (modo === 'fov' && !SIN_FOV) ? 'fov' : 'sat';
   tituloModal(f, MODO);
   document.querySelector('#modal .mbox').classList.toggle('fov', MODO === 'fov');
   document.getElementById('modal').classList.add('on');
@@ -825,7 +831,7 @@ function cerrarModal(){
 document.getElementById('mracc').addEventListener('click', e => {
   const b = e.target.closest('button[data-modo]');
   if(!b || !MACTUAL) return;
-  mostrarTrayecto(MACTUAL, b.dataset.modo);
+  mostrarTrayecto(MACTUAL, b.dataset.modo, SIN_FOV);
 });
 
 document.getElementById('modal').addEventListener('click', e => {
@@ -838,7 +844,8 @@ document.addEventListener('click', e => {
   const a = e.target.closest('a.mlink[data-k]');
   if(!a) return;
   e.preventDefault();
-  abrirTrayecto(a.dataset.k, a.dataset.modo);   // si el día no está, lo baja
+  // si el día no está, lo baja; data-nofov evita ofrecer el mapa FOV
+  abrirTrayecto(a.dataset.k, a.dataset.modo, a.dataset.nofov === '1');
 });
 
 // El día en curso se refresca cada 5 min (suma los puntos de los vuelos abiertos);
