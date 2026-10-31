@@ -195,8 +195,7 @@ function renderLive(){
   marcarFilas();
 }
 function pollLive(){
-  fetch('r1_live.json?_=' + Date.now(), {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  getJson('r1_live.json')
     .then(j => { liveData = j || { flights: [] }; renderLive(); })
     .catch(() => {});
 }
@@ -239,8 +238,7 @@ function renderReportes(){
     '<tbody>' + body + '</tbody></table></div></section>';
 }
 function pollReportes(){
-  fetch('reportes.json?_=' + Date.now(), {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  getJson('reportes.json')
     .then(j => { repData = j || { tops: {} }; renderReportes(); })
     .catch(() => {});
 }
@@ -285,19 +283,48 @@ document.getElementById('days').addEventListener('click', e => {
   if(t) t.parentElement.classList.toggle('open');
 });
 
+// Los JSON se publican por snapshot: un pedido puede caer justo mientras el archivo
+// se reescribe. Se reintenta 3 veces antes de dar el error (2 s entre intentos).
+const JSON_TRIES = 3, JSON_RETRY_MS = 2000;
+function getJson(name, tries){
+  const total = tries || JSON_TRIES;
+  return new Promise((resolve, reject) => {
+    let intento = 0;
+    const pedir = () => {
+      intento++;
+      fetch(name + '?_=' + Date.now(), {cache: 'no-store'})
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(resolve)
+        .catch(err => {
+          if(intento >= total) return reject(err);
+          setTimeout(pedir, JSON_RETRY_MS);
+        });
+    };
+    pedir();
+  });
+}
+
 // La tabla semanal se recarga de semana.json (index.html no se regenera).
 const WEEK_REFRESH_MS = 300000;   // 5 min
+function mensajeSinDatos(){
+  const days = document.getElementById('days');
+  days.innerHTML =
+    '<p class="na" style="text-align:center">Se están actualizando los datos de los vuelos · ' +
+    '<a href="#" class="mlink" id="reintentar">Reintentar</a></p>';
+  document.getElementById('foot').textContent = '';
+  const a = document.getElementById('reintentar');
+  if(a) a.addEventListener('click', ev => {
+    ev.preventDefault();
+    days.innerHTML = '<p class="na" style="text-align:center">Se están actualizando los datos de los vuelos…</p>';
+    loadWeek(true);
+    pollLive();
+    pollReportes();
+  });
+}
 function loadWeek(first){
-  fetch('semana.json?_=' + Date.now(), {cache: 'no-store'})
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  getJson('semana.json')
     .then(j => { DATA = j || { flights: [] }; render(); })
-    .catch(() => {
-      if(first){
-        document.getElementById('days').innerHTML =
-          '<p class="na" style="text-align:center">No se pudieron cargar los datos (semana.json).</p>';
-        document.getElementById('foot').textContent = '';
-      }
-    });
+    .catch(() => { if(first) mensajeSinDatos(); });
 }
 function tickReloj(){
   const d = new Date();
