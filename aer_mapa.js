@@ -773,8 +773,12 @@ function rutaModal(f, modo){
     : '';
   // FA primero (ficha del vuelo y fecha); si no trae ruta, adsbdb.
   const fa = f.fa || null, adb = f.route || null;
-  const ruta = (fa && (fa.origin || fa.destination)) ? fa : adb;
-  const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
+  // Un extremo "sirve" sólo si trae código o país (FA manda el objeto vacío).
+  const sirve = a => !!(a && (a.iata || a.icao ||
+    (a.country && /^[a-z]{2}$/i.test(a.country)) || a.country_name));
+  const ruta = (fa && (sirve(fa.origin) || sirve(fa.destination))) ? fa : adb;
+  const origen = ruta && sirve(ruta.origin) ? ruta.origin : null;
+  const destino = ruta && sirve(ruta.destination) ? ruta.destination : null;
   if(!origen && !destino){
     // Sin ruta: se dice explícitamente y se deja el boton SAT/FOV.
     document.getElementById('mrdatos').innerHTML =
