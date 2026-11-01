@@ -118,6 +118,7 @@ td .tipo { color: var(--tenue); }
   font-variant-numeric: tabular-nums; }
 .mruta .map { color: var(--acento); font-weight: 700; letter-spacing: .04em; }
 .mruta .mci { color: var(--tenue); }
+.mruta .msinruta { color: var(--tenue); font-style: italic; }
 .mruta .flag { width: 16px; height: 12px; margin: 0; }
 #mmap { flex: 1 1 auto; width: 100%; min-height: 0; background: var(--fondo-canvas); }
 

@@ -771,14 +771,15 @@ function rutaModal(f, modo){
       (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
       (modo === 'fov' ? 'SAT' : 'FOV') + '</button>'
     : '';
-  const fa = f.fa || null;
-  const ruta = fa || f.route || null;
+  // FA primero (ficha del vuelo y fecha); si no trae ruta, adsbdb.
+  const fa = f.fa || null, adb = f.route || null;
+  const ruta = (fa && (fa.origin || fa.destination)) ? fa : adb;
   const origen = ruta && ruta.origin, destino = ruta && ruta.destination;
   if(!origen && !destino){
-    // Sin ruta: se muestra solo el boton SAT/FOV (la caja se oculta si no hay
-    // ninguno de los dos, para no dejar una franja vacia en el modal).
-    document.getElementById('mrdatos').innerHTML = '';
-    box.hidden = !hayFov;
+    // Sin ruta: se dice explícitamente y se deja el boton SAT/FOV.
+    document.getElementById('mrdatos').innerHTML =
+      '<div class="mrl"><span class="msinruta">no informa ruta de vuelo</span></div>';
+    box.hidden = false;
     return;
   }
   const hora = iso => {
