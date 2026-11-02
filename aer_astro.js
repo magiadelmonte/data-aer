@@ -290,7 +290,17 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
     const distL = Math.hypot(lm[0], lm[1], lm[2]);
     const rl = Math.max(2, focal * Math.tan(Math.asin(1737.4 / distL)));
     const creciente = (lm[0] * sv[1] - lm[1] * sv[0]) > 0;
-    const angSol = Math.atan2(ps[1] - lp[1], ps[0] - lp[0]);
+    // Dirección al Sol en pantalla. Si el Sol está fuera del encuadre (de noche
+    // siempre lo está) `ps` es null: se usa un punto interpolado 5 % hacia el Sol
+    // y, si tampoco, se asume la luz viniendo de abajo (el Sol bajo el horizonte).
+    let ref = ps;
+    if(!ref){
+      const mix = [lm[0] + (sv[0] - lm[0]) * .05,
+                   lm[1] + (sv[1] - lm[1]) * .05,
+                   lm[2] + (sv[2] - lm[2]) * .05];
+      ref = pAz(astroTeme2ecef(mix, gm));
+    }
+    const angSol = ref ? Math.atan2(ref[1] - lp[1], ref[0] - lp[0]) : Math.PI / 2;
     astroDibujarLuna(g, lp[0], lp[1], rl, ilum, angSol,
                      'rgba(235,235,215,' + (.75 + ilum / 4).toFixed(2) + ')',
                      'rgba(235,235,215,.10)');
