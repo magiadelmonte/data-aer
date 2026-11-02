@@ -778,12 +778,13 @@ function rutaModal(f, modo){
       (modo === 'fov' ? 'sat' : 'fov') + '">VER ' +
       (modo === 'fov' ? 'SAT' : 'FOV') + '</button>'
     : '';
-  // FA primero (ficha del vuelo y fecha); si no trae ruta, adsbdb.
-  const fa = f.fa || null, adb = f.route || null;
+  // FA es la única fuente de ruta (ficha del vuelo y fecha). adsbdb se descartó:
+  // su base es por callsign y casi siempre estaba mal (el backend manda `route: null`).
+  const fa = f.fa || null;
   // Un extremo "sirve" sólo si trae código o país (FA manda el objeto vacío).
   const sirve = a => !!(a && (a.iata || a.icao ||
     (a.country && /^[a-z]{2}$/i.test(a.country)) || a.country_name));
-  const ruta = (fa && (sirve(fa.origin) || sirve(fa.destination))) ? fa : adb;
+  const ruta = fa;
   const origen = ruta && sirve(ruta.origin) ? ruta.origin : null;
   const destino = ruta && sirve(ruta.destination) ? ruta.destination : null;
   if(!origen && !destino){
