@@ -7,7 +7,11 @@
 <title>Aeronaves | Observatorio Uritorco - Magia del Monte</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-<link rel="stylesheet" href="aer.css?v=20261101n">
+<!-- Paleta del overlay mapa_aer: la genera publish_aer.py desde el skin. Con
+     ?skin=<id> se elige otra (aer_skin.css trae las dos). -->
+<script>(function(){var s=new URLSearchParams(location.search).get('skin');if(s)document.documentElement.dataset.skin=s;})();</script>
+<link rel="stylesheet" href="aer_skin.css">
+<link rel="stylesheet" href="aer.css?v=20261102a">
 </head>
 <body>
 <header>
