@@ -1,10 +1,23 @@
-/* Mismo estilo visual que sat_camara.html (mismas variables que "css" de sat_config.json) */
+/* Colores del sitio: los mismos del overlay `mapa_aer`. `aer_skin.css` (lo genera
+   publish_aer.py desde FRONTEND/json/mapa_aer_skin.json) define --c1..--c13 y sus
+   --cN-rgb; aca solo se mapean a los nombres que usa esta hoja. Los fallbacks son la
+   paleta 3450, para que el CSS se vea bien si el skin no esta. */
 :root {
-  --txt: #d4c9b0; --fondo: #000; --fondo-canvas: #05070a; --panel: #05070a;
-  --celeste: #8fb0d8;
-  --borde: rgba(180,150,80,.45); --borde-suave: rgba(180,150,80,.25);
-  --acento: #b49650; --ok: #4f8a6d; --tenue: #9a917c; --blanco: #fff; --no: #c0574d;
-  --fila-alt: rgba(180,150,80,.05); --hover: rgba(180,150,80,.12);
+  --txt: var(--c8, #ced19f);
+  --fondo: var(--c5, #000702);
+  --fondo-canvas: var(--c12, #9ab87a);
+  --panel: var(--c5, #000702);
+  --celeste: var(--c12, #9ab87a);
+  --borde: rgba(var(--c2-rgb, 116, 142, 64), .45);
+  --borde-suave: rgba(var(--c2-rgb, 116, 142, 64), .25);
+  --acento: var(--c2, #748e40);
+  --ok: var(--c11, #fff);
+  --tenue: var(--c9, #9e7f4f);
+  --blanco: var(--c11, #fff);
+  --no: var(--c7, #ff4d4d);
+  --fila-alt: rgba(var(--c2-rgb, 116, 142, 64), .06);
+  --hover: rgba(var(--c2-rgb, 116, 142, 64), .14);
+  --radio: 12px;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -16,7 +29,7 @@ body {
 header { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 78px; margin: 0 -16px 24px; padding: 0 12px; border-bottom: 1px solid var(--borde); }
 header h1 {                       /* mismo tamaño que el título de data-sat (#titulo) */
   margin: 0; font-size: clamp(14px, 2vw, 22px); line-height: 1.2;
-  letter-spacing: 2px; font-weight: 700; color: var(--txt);
+  letter-spacing: 2px; font-weight: 700; color: var(--blanco);
 }
 header .subtitle { margin-top: 4px; font-size: clamp(.7rem, 1.6vw, .875rem); letter-spacing: .06em; color: var(--tenue); }
 header .rule { display: none; }
@@ -29,7 +42,10 @@ header .rule { display: none; }
 #reloj .fecha { font-size: 22px; }
 #reloj .hora { font-size: 27.5px; line-height: 1.1; color: inherit; }
 main { max-width: 1120px; margin: 0 auto; }
-.day { background: var(--panel); border: 1px solid var(--borde); margin: 0 0 22px; overflow: hidden; }
+.day { background: linear-gradient(rgba(var(--c3-rgb, 206, 209, 159), .10),
+    rgba(var(--c4-rgb, 158, 127, 79), .06)), var(--panel);
+  border: 1px solid var(--borde); border-radius: var(--radio);
+  margin: 0 0 22px; overflow: hidden; }
 .day-title {
   display: flex; align-items: center; margin: 0; padding: 8px 12px;
   border-bottom: 1px solid var(--borde); color: var(--blanco);
@@ -47,9 +63,9 @@ main { max-width: 1120px; margin: 0 auto; }
 .day.live .day-title { color: var(--blanco); border-bottom-color: var(--borde); }
 .live-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: 10px; background: var(--acento); animation: livepulse 1.6s ease-out infinite; }
 @keyframes livepulse {
-  0% { box-shadow: 0 0 0 0 rgba(180,150,80,.75); }
-  70% { box-shadow: 0 0 0 9px rgba(79,138,109,0); }
-  100% { box-shadow: 0 0 0 0 rgba(180,150,80,0); }
+  0% { box-shadow: 0 0 0 0 rgba(var(--c2-rgb, 116, 142, 64), .75); }
+  70% { box-shadow: 0 0 0 9px rgba(var(--c2-rgb, 116, 142, 64), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--c2-rgb, 116, 142, 64), 0); }
 }
 table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
 th, td { padding: 6px 12px; text-align: left; white-space: nowrap; }
@@ -62,7 +78,7 @@ tbody tr:last-child td { border-bottom: none; }
 .hora { font-weight: 700; color: var(--blanco); }
 .cat { display: block; color: var(--tenue); font-size: 11px; }
 .tot { color: var(--tenue); }
-.flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px; object-fit: cover; border: 1px solid var(--borde); }
+.flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px; object-fit: cover; border: 1px solid var(--borde); border-radius: 2px; }
 .mark { font-weight: 700; }
 .yes { color: var(--ok); }
 .no { color: var(--no); }
@@ -83,9 +99,9 @@ td .reg { color: var(--blanco); font-weight: 600; letter-spacing: .02em; }
 td .tipo { color: var(--tenue); }
 .mlink + .mlink { margin-left: 6px; }
 /* ---- Modal de trayectoria ---- */
-#modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 6px 16px; background: rgba(0,0,0,.84); }
+#modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 6px 16px; background: rgba(var(--c5-rgb, 0, 7, 2), .88); }
 #modal.on { display: flex; }
-.mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); box-shadow: 0 0 46px rgba(0,0,0,.95); }
+.mbox { display: flex; flex-direction: column; position: relative; width: min(92vmin, 900px); aspect-ratio: 1 / 1; max-width: 100%; max-height: 100%; background: var(--panel); border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; box-shadow: 0 0 46px rgba(0,0,0,.95); }
 .mbox.fov { width: min(96vw, 1280px, calc((100vh - 92px) * 1.774));
   aspect-ratio: auto; height: auto; }
 .mbox.fov .mfoot { flex: 0 0 auto; display: none; }
@@ -151,7 +167,7 @@ td .tipo { color: var(--tenue); }
 #mmap canvas { outline: none; }
 .mfoot { flex: 0 0 auto; padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
 .mfoot a { color: var(--acento); text-decoration: none; }
-.mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(5,7,10,.92); border: 1px solid var(--borde); color: #fff; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
+.mtip { position: absolute; z-index: 5; display: none; pointer-events: none; padding: 3px 8px; background: rgba(var(--c5-rgb, 0, 7, 2), .92); border: 1px solid var(--borde); border-radius: 8px; color: var(--blanco); font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
 .mplane { filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 3px rgba(0,0,0,.9)); }
 .mico { display: block; width: 30px; height: 30px;
   -webkit-mask-size: contain; mask-size: contain;
@@ -171,11 +187,11 @@ footer a { color: var(--acento); }
 
 /* Modal de fotografía (desde la lista de vuelos) */
 #fotomodal { display: none; position: fixed; inset: 0; z-index: 10000; padding: 3vmin;
-  background: rgba(4,6,9,.88); align-items: center; justify-content: center; }
+  background: rgba(var(--c5-rgb, 0, 7, 2), .88); align-items: center; justify-content: center; }
 #fotomodal.on { display: flex; }
 #fotomodal .fbox { display: flex; flex-direction: column; max-width: min(96vw, 1200px);
   max-height: 94vh; background: var(--panel); border: 1px solid var(--borde);
-  box-shadow: 0 0 46px rgba(0,0,0,.95); }
+  border-radius: 16px; overflow: hidden; box-shadow: 0 0 46px rgba(0,0,0,.95); }
 #fotomodal .fhead { flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
   padding: 8px 12px; border-bottom: 1px solid var(--borde); color: var(--blanco);
   font-weight: 700; letter-spacing: .05em; font-size: 15px; }
@@ -186,4 +202,5 @@ footer a { color: var(--acento); }
 #fotomodal .fclose:hover { color: var(--blanco); }
 #fotomodal .fbody { flex: 1 1 auto; min-height: 0; display: flex;
   align-items: center; justify-content: center; background: var(--fondo-canvas); }
-#fotomodal .fbody img { max-width: 100%; max-height: 84vh; object-fit: contain; display: block; }
+#fotomodal .fbody img { max-width: 100%; max-height: 84vh; object-fit: contain;
+  display: block; border-radius: 10px; }
