@@ -443,7 +443,7 @@ function dibujarTrayecto(f){
   MMAP.addSource('trajhover', {type: 'geojson', data: {type: 'FeatureCollection', features: []}});
   MMAP.addLayer({id: 'trajhover', type: 'circle', source: 'trajhover',
     paint: {'circle-radius': 4, 'circle-color': BLANCO,
-      'circle-stroke-color': '#000', 'circle-stroke-width': 1.5}});
+      'circle-stroke-color': MAP_BG, 'circle-stroke-width': 1.5}});
   MTRAJ_IDS.push('trajhover');
   activarHover();
   // Avión en el último punto, orientado al rumbo final.
