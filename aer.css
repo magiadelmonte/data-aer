@@ -161,9 +161,16 @@ td .tipo { color: var(--tenue); }
 @media (prefers-reduced-motion: reduce) {
   .mfovico, #mmap .maplibregl-marker .mplane { animation: none; }
 }
-.mlab { color: #fff; opacity: .85; font-size: 11px; letter-spacing: .06em; text-shadow: none; }
-.mlab_km { opacity: .8; font-size: 10px; }        /* distancias: sobre la línea del radio */
-.mlab_card { font-weight: 700; opacity: .9; }     /* cardinales del anillo exterior */
+/* Rótulos del mapa (mismos estilos que mapa_sat). */
+.mlab { color: var(--c11, #fff); opacity: .85; font-size: 11px; letter-spacing: .06em;
+  text-shadow: none; pointer-events: none; }
+.mlab_km { opacity: .8; font-size: 10px; }        /* distancias: sobre su anillo */
+.mlab_az { opacity: .7; font-size: 10px; }        /* grados de acimut */
+.mlab_az.mlab_card { font-weight: 700; opacity: .9; font-size: 15px; }
+.mlab_az.mlab_diag { font-weight: 700; opacity: .85; font-size: 11px; }
+.mlab span { display: inline-block; }
+.mlab_tick { opacity: .55; }
+.mlab_tick .tk { width: 1px; height: 6px; background: currentColor; }
 #mmap canvas { outline: none; }
 .mfoot { flex: 0 0 auto; padding: 5px 12px; border-top: 1px solid var(--borde-suave); text-align: center; font-size: 10px; letter-spacing: .03em; color: var(--tenue); }
 .mfoot a { color: var(--acento); text-decoration: none; }

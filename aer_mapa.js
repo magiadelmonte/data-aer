@@ -17,8 +17,21 @@ const AZUL_H = [165, 265], AZUL_S_MIN = 0.12;   // rango de matiz que se conside
 // (0 = estilo original; 0,14 ≈ tierras #0e0e0e -> #2f2f2f, más del doble de brillo).
 // Los halos de las etiquetas quedan oscuros para no perder contraste.
 const ACLARAR = 0.02;
-const MAP_BG = '#05070a';   // mismo fondo que data-sat (negro)
-const CELESTE = 'rgba(143,176,216,.5)';   // celeste de constelaciones, al 50%
+// Colores del skin (aer_skin.css, los mismos que el overlay mapa_aer). Los fallbacks
+// son la paleta 3450, para que el mapa se dibuje igual si el CSS no esta.
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function alfaC(hex, a){
+  const c = parseColor(hex);
+  return c ? 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')' : hex;
+}
+const BLANCO = cssVar('--c11', '#ffffff');     // anillos, sector, trayectos, textos
+const ROJO = cssVar('--c7', '#ff4d4d');        // trayecto con altura / punto "alto"
+const GRIS = cssVar('--c8', '#ced19f');        // grilla y textos del FOV
+const MAP_BG = cssVar('--c5', '#000702');      // fondo del mapa
+const CELESTE = alfaC(cssVar('--c12', '#9ab87a'), .5);   // lineas y rotulos del base
 function parseColor(v){
   let m = /^#([0-9a-f]{3,8})$/i.exec(v);
   if(m){
@@ -157,7 +170,7 @@ function estiloMapa(base, nivel){
       } else if(l.type === 'symbol'){
         l.paint = l.paint || {};
         l.paint['text-color'] = CELESTE;
-        l.paint['text-halo-color'] = 'rgba(5,7,10,.92)';
+        l.paint['text-halo-color'] = alfaC(MAP_BG, .92);
         if(l.paint['icon-color'] !== undefined) l.paint['icon-color'] = CELESTE;
       }
     });
@@ -170,6 +183,40 @@ function estiloMapa(base, nivel){
     });
   }
   return st;
+}
+
+// Rótulo del mapa con el mismo estilo que mapa_sat: el texto va en un span que se
+// puede girar (para que quede paralelo a su anillo o radial en la marca de acimut).
+function etiquetaMapa(m, texto, lat, lon, clase, offset, rot){
+  const el = document.createElement('div');
+  el.className = 'mlab ' + clase;
+  const sp = document.createElement('span');
+  sp.textContent = texto;
+  if(rot) sp.style.transform = 'rotate(' + rot + 'deg)';
+  el.appendChild(sp);
+  new maplibregl.Marker({element: el, anchor: 'center', offset: offset || [0, 0]})
+    .setLngLat([lon, lat]).addTo(m);
+}
+function marcaMapa(m, lat, lon, az){
+  const el = document.createElement('div');
+  el.className = 'mlab mlab_tick';
+  const sp = document.createElement('span');
+  sp.className = 'tk';
+  sp.style.transform = 'rotate(' + az + 'deg)';
+  el.appendChild(sp);
+  new maplibregl.Marker({element: el, anchor: 'center'})
+    .setLngLat([lon, lat]).addTo(m);
+}
+// Angulo de la tangente en un azimut (para girar el rótulo de km sobre su anillo).
+function tangente(az){
+  let r = ((az % 180) + 180) % 180;
+  if(r > 90) r -= 180;
+  return r;
+}
+function enFovAz(az, F){
+  if(!F || F.az_min == null || F.az_max == null) return false;
+  const a = ((az % 360) + 360) % 360;
+  return a >= F.az_min && a <= F.az_max;
 }
 
 function initMapa(){
@@ -219,10 +266,13 @@ function initMapa(){
         m.addSource('sector', {type: 'geojson', data: {type: 'Feature',
           geometry: {type: 'Polygon', coordinates: [sector]}}});
         m.addLayer({id: 'sector', type: 'fill', source: 'sector',
-          paint: {'fill-color': '#fff', 'fill-opacity': .26}});
+          paint: {'fill-color': BLANCO, 'fill-opacity': .182}});
       }
-      // Anillos punteados (25 / 50 / 65 km). La distancia de cada uno va apoyada en su propio
-      // anillo (paralela a la línea, del lado de adentro), en el norte, donde el texto queda horizontal.
+      // Mismos estilos que el mapa de mapa_sat: anillos (el último con puntos chicos),
+      // vuelta de acimut cada 10° con los grados dentro del FOV y rayitas afuera,
+      // cardinales en la vuelta y diagonales adentro, y el rótulo de km girado,
+      // apoyado sobre su anillo del lado interno.
+      const MAPA = TRAJ.mapa || {};
       rings.forEach((r, i) => {
         const pts = [];
         for(let a = 0; a <= 360; a += 2){
@@ -231,37 +281,35 @@ function initMapa(){
         }
         m.addSource('ring' + r, {type: 'geojson', data: {type: 'Feature',
           geometry: {type: 'LineString', coordinates: pts}}});
+        const ult = i === rings.length - 1;
         m.addLayer({id: 'ring' + r, type: 'line', source: 'ring' + r,
-          layout: {'line-cap': 'butt', 'line-join': 'round'},
-          paint: {'line-color': '#fff', 'line-opacity': i ? .23 : .32,
-            'line-width': i ? .42 : .57, 'line-dasharray': [16, 16]}});
-        const p = destino(lat, lon, 0, r);
-        const el = document.createElement('span');
-        el.className = 'mlab mlab_km';
-        el.textContent = r + ' km';
-        // Apoyada en el anillo: el anillo es el renglón y el texto queda 7 px adentro.
-        new maplibregl.Marker({element: el, anchor: 'center', offset: [0, 7]})
-          .setLngLat([p[1], p[0]]).addTo(m);
+          layout: {'line-cap': ult ? 'round' : 'butt', 'line-join': 'round'},
+          paint: {'line-color': BLANCO, 'line-opacity': ult ? .224 : .23,
+            'line-width': ult ? 1.5 : .42,
+            'line-dasharray': ult ? [.1, 3] : [16, 16]}});
+        const az = MAPA.ring_label_az == null ? 247.5 : MAPA.ring_label_az;
+        const p = destino(lat, lon, az, r - 1.6);
+        etiquetaMapa(m, r + ' km', p[0], p[1], 'mlab_km', [0, 0], tangente(az));
       });
-      // 8 puntos cardinales en el anillo exterior, blancos y apenas por fuera de la línea.
-      const CARD = [['N', 0], ['NE', 45], ['E', 90], ['SE', 135],
-                    ['S', 180], ['SO', 225], ['O', 270], ['NO', 315]];
-      CARD.forEach(([txt, az]) => {
-        const p = destino(lat, lon, az, rings[2] + 2.5);
-        const el = document.createElement('span');
-        el.className = 'mlab mlab_card';
-        el.textContent = txt;
-        new maplibregl.Marker({element: el, anchor: 'center'})
-          .setLngLat([p[1], p[0]]).addTo(m);
-      });
-      // Bordes de la porción azimutal: líneas punteadas desde el centro hasta el alcance del FOV.
-      (FOV ? [FOV.az_min, FOV.az_max] : []).forEach(az => {
-        const q = destino(lat, lon, az, FOV.radius_km || rings[2]);
-        m.addSource('borde' + az, {type: 'geojson', data: {type: 'Feature',
-          geometry: {type: 'LineString', coordinates: [[lon, lat], [q[1], q[0]]]}}});
-        m.addLayer({id: 'borde' + az, type: 'line', source: 'borde' + az,
-          layout: {'line-cap': 'butt'},
-          paint: {'line-color': '#fff', 'line-opacity': .18, 'line-width': .42, 'line-dasharray': [16, 16]}});
+      const CARD = {0: 'N', 45: 'NE', 90: 'E', 135: 'SE',
+                    180: 'S', 225: 'SO', 270: 'O', 315: 'NO'};
+      const azKm = rings[rings.length - 1] + (MAPA.az_label_km == null ? 1.8 : MAPA.az_label_km);
+      for(let az = 0; az < 360; az += 10){
+        const p = destino(lat, lon, az, azKm);
+        if(CARD[az] && az % 90 === 0){
+          etiquetaMapa(m, CARD[az], p[0], p[1], 'mlab_az mlab_card');
+        } else if(CARD[az]){
+          continue;                       // las diagonales van adentro
+        } else if(enFovAz(az, FOV)){
+          etiquetaMapa(m, az + '°', p[0], p[1], 'mlab_az');
+        } else {
+          marcaMapa(m, p[0], p[1], az);
+        }
+      }
+      const diagKm = rings[rings.length - 1] - (MAPA.diag_km == null ? 4 : MAPA.diag_km);
+      [45, 135, 225, 315].forEach(az => {
+        const p = destino(lat, lon, az, diagKm);
+        etiquetaMapa(m, CARD[az], p[0], p[1], 'mlab_az mlab_diag');
       });
       encuadrar(MODO);
     });
@@ -382,7 +430,7 @@ function dibujarTrayecto(f){
       geometry: {type: 'LineString', coordinates: tr.pts.map(p => [p[1], p[0]])}}});
     MMAP.addLayer({id: id, type: 'line', source: id,
       layout: {'line-join': 'round', 'line-cap': 'round'},
-      paint: {'line-color': tr.alto ? '#ff4d4d' : '#fff', 'line-width': 1.6,
+      paint: {'line-color': tr.alto ? ROJO : BLANCO, 'line-width': 1.6,
         'line-opacity': tr.ok ? 1 : .45, 'line-dasharray': [.4, 2.2]}});
     MTRAJ_IDS.push(id);
   });
@@ -394,7 +442,7 @@ function dibujarTrayecto(f){
   if(!hasAlt) MHOVER = null;
   MMAP.addSource('trajhover', {type: 'geojson', data: {type: 'FeatureCollection', features: []}});
   MMAP.addLayer({id: 'trajhover', type: 'circle', source: 'trajhover',
-    paint: {'circle-radius': 4, 'circle-color': '#fff',
+    paint: {'circle-radius': 4, 'circle-color': BLANCO,
       'circle-stroke-color': '#000', 'circle-stroke-width': 1.5}});
   MTRAJ_IDS.push('trajhover');
   activarHover();
@@ -455,10 +503,10 @@ function sierraFov(g, S, W, H, conRelleno){
   };
   if(conRelleno){
     trazo(); g.lineTo(W, H); g.lineTo(0, H); g.closePath();
-    g.fillStyle = 'rgba(5,7,10,' + (S.opacidad == null ? .7 : S.opacidad) + ')';
+    g.fillStyle = alfaC(MAP_BG, S.opacidad == null ? .7 : S.opacidad);
     g.fill();
   }
-  trazo(); g.strokeStyle = 'rgba(139,26,26,.9)'; g.lineWidth = 2;
+  trazo(); g.strokeStyle = alfaC(ROJO, .9); g.lineWidth = 2;
   g.setLineDash([]); g.stroke();
 }
 
@@ -481,7 +529,7 @@ function dibujarFov(f){
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
-  g.fillStyle = '#05070a'; g.fillRect(0, 0, W, H);
+  g.fillStyle = MAP_BG; g.fillRect(0, 0, W, H);
 
   const P = proyector(F, W, H);
   const top = F.el0 + F.fovV / 2, bot = Math.max(0, F.el0 - F.fovV / 2);
@@ -498,7 +546,7 @@ function dibujarFov(f){
       if(!p) continue;
       if(el === bot) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
     }
-    g.strokeStyle = 'rgba(212,201,176,.14)'; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = alfaC(GRIS, .14); g.lineWidth = 1; g.stroke();
     const lp = P(az, top - .5);
     if(lp && lp[0] > 16 && lp[0] < W - 16) azTags.push({x: lp[0], az: az});
   }
@@ -509,10 +557,10 @@ function dibujarFov(f){
       if(!p) continue;
       if(az === azL) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
     }
-    g.strokeStyle = 'rgba(212,201,176,.14)'; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = alfaC(GRIS, .14); g.lineWidth = 1; g.stroke();
     const lp = P(azL + 1.2, el);
     if(lp && lp[1] > 12 && lp[1] < H - 16){
-      g.fillStyle = 'rgba(212,201,176,.45)'; g.fillText(el + '°', 5, lp[1] - 3);
+      g.fillStyle = alfaC(GRIS, .45); g.fillText(el + '°', 5, lp[1] - 3);
     }
   }
 
@@ -541,7 +589,7 @@ function dibujarFov(f){
     if(q.x == null){ pen = false; return; }
     if(!pen){ g.moveTo(q.x, q.y); pen = true; } else g.lineTo(q.x, q.y);
   });
-  g.strokeStyle = '#fff'; g.lineWidth = .9; g.setLineDash([2, 3]); g.stroke();
+  g.strokeStyle = BLANCO; g.lineWidth = .9; g.setLineDash([2, 3]); g.stroke();
   g.setLineDash([]);
 
   // Punta del trayecto: el ícono de la aeronave (mismo arte, categoría y color que
@@ -567,7 +615,7 @@ function dibujarFov(f){
   // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
   sierraFov(g, F.sierra, W, H, true);
   // Grados de acimut en la franja superior (el marco lo pone la modal).
-  g.font = '11px "Courier New", monospace'; g.fillStyle = 'rgba(212,201,176,.7)';
+  g.font = '11px "Courier New", monospace'; g.fillStyle = alfaC(GRIS, .7);
   g.textAlign = 'center';
   azTags.forEach(t => g.fillText(t.az + '°', t.x, 14));
   g.textAlign = 'left';
@@ -679,7 +727,7 @@ function activarHover(){
       alto = Math.abs(rel) <= F.fovH / 2
         && distKm(lat, lon, TRAJ.center_lat, TRAJ.center_lon) <= (F.radius_km || 65);
     }
-    MMAP.setPaintProperty('trajhover', 'circle-color', alto ? '#ff4d4d' : '#fff');
+    MMAP.setPaintProperty('trajhover', 'circle-color', alto ? ROJO : BLANCO);
     const hora = (best.t < .5 ? P.hora : Q.hora) || null;
     // Distancia del punto al observatorio (Capilla del Monte), la misma del centro
     // de los anillos.
