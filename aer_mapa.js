@@ -548,7 +548,7 @@ function dibujarFov(f){
     const el = elDe(lls, i);
     const q = el == null ? null : P(bearing(clat, clon, p[0], p[1]), el);
     return {x: q ? q[0] : null, y: q ? q[1] : null, alt: p[2], el: el,
-      hora: p[5] || null};
+      lat: p[0], lon: p[1], hora: p[5] || null};
   });
   // Trayecto punteado y fino (la mitad del espesor del trazo del mapa SAT).
   g.beginPath(); let pen = false;
@@ -626,13 +626,16 @@ function activarHoverFov(cv){
       if(p.x == null || p.x < 0 || p.x > W || p.y < 0 || p.y > H) return;
       const d = Math.hypot(e.offsetX - p.x, e.offsetY - p.y);
       if(!best || d < best.d) best = {d: d, x: p.x, y: p.y, alt: p.alt, el: p.el,
-        hora: p.hora};
+        lat: p.lat, lon: p.lon, hora: p.hora};
     });
     if(!best || best.d > 16 || best.alt == null){ MFOV_TIP.style.display = 'none'; return; }
+    // Distancia del punto al observatorio (Capilla del Monte).
+    const dkm = distKm(best.lat, best.lon, TRAJ.center_lat, TRAJ.center_lon);
     MFOV_TIP.textContent = (best.hora ? best.hora + ' · ' : '') +
       Math.round(best.alt).toLocaleString('es-AR') + ' m' +
       (best.el == null ? '' : ' · ' + (Math.round(best.el * 10) / 10)
-        .toLocaleString('es-AR') + '°');
+        .toLocaleString('es-AR') + '°') +
+      ' · ' + (Math.round(dkm * 10) / 10).toLocaleString('es-AR') + ' km';
     MFOV_TIP.style.display = 'block';
     const bx = cv.offsetLeft, by = cv.offsetTop;
     const bw = document.getElementById('mfovbox').clientWidth, tw = MFOV_TIP.offsetWidth;
@@ -694,9 +697,13 @@ function activarHover(){
     }
     MMAP.setPaintProperty('trajhover', 'circle-color', alto ? '#ff4d4d' : '#fff');
     const hora = (best.t < .5 ? P.hora : Q.hora) || null;
+    // Distancia del punto al observatorio (Capilla del Monte), la misma del centro
+    // de los anillos.
+    const dkm = distKm(lat, lon, TRAJ.center_lat, TRAJ.center_lon);
     MTIP.textContent = (hora ? hora + ' · ' : '') +
       Math.round(alt).toLocaleString('es-AR') + ' m' +
-      (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°');
+      (elev == null ? '' : ' · ' + (Math.round(elev * 10) / 10).toLocaleString('es-AR') + '°') +
+      ' · ' + (Math.round(dkm * 10) / 10).toLocaleString('es-AR') + ' km';
     MTIP.style.display = 'block';
     const W = MMAP.getContainer().clientWidth, tw = MTIP.offsetWidth;
     MTIP.style.left = Math.max(4, Math.min(W - tw - 4, best.x + 12)) + 'px';
