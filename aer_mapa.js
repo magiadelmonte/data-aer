@@ -532,10 +532,7 @@ function dibujarFov(f){
   g.clearRect(0, 0, W, H);
   g.fillStyle = MAP_BG; g.fillRect(0, 0, W, H);
 
-  cv.dataset.dbg = 'fov=' + (F ? 'si' : 'no') + ' sierra=' +
-    ((F && F.sierra && F.sierra.pts && F.sierra.pts.length) || 0) +
-    ' fovkeys=' + (F ? Object.keys(F).join(',') : '') +
-    ' trajkeys=' + Object.keys(TRAJ).join(',');
+  cv.dataset.dbg = 'st sierra=' + ((F && F.sierra && F.sierra.pts && F.sierra.pts.length) || 0);
   const P = proyector(F, W, H);
   const top = F.el0 + F.fovV / 2, bot = Math.max(0, F.el0 - F.fovV / 2);
   const azL = F.az0 - F.fovH / 2, azR = F.az0 + F.fovH / 2;
@@ -575,8 +572,10 @@ function dibujarFov(f){
     astroDibujar(g, P, F, W, H, f, TRAJ.center_lat, TRAJ.center_lon,
                  () => { if(MACTUAL === f && MODO === 'fov') dibujarFov(f); });
 
+  cv.dataset.dbg += '|astro';
   // Cresta del Uritorco (la silueta rellena va al final, para tapar lo que pasa detrás).
   sierraFov(g, F.sierra, W, H, false);
+  cv.dataset.dbg += '|sierra';
 
   // Trayecto: continuo dentro del FOV, punteado afuera; se corta en el cruce real.
   const lls = f.path.map(p => [p[0], p[1], p[2], p[3], p[4], p[5]]);
@@ -619,6 +618,7 @@ function dibujarFov(f){
   }
   // El cerro tapa (atenúa) lo que pasa por detrás, igual que en data-sat.
   sierraFov(g, F.sierra, W, H, true);
+  cv.dataset.dbg += '|fin';
   // Grados de acimut en la franja superior (el marco lo pone la modal).
   g.font = '11px "Courier New", monospace'; g.fillStyle = alfaC(GRIS, .7);
   g.textAlign = 'center';
