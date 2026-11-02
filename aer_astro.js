@@ -178,9 +178,12 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
   const pAz = e => P(...astroAzElEcef(e, lat, lon));
   const dentro = (p, m) => p && p[0] >= -(m || 0) && p[0] <= W + (m || 0) &&
                                 p[1] >= -(m || 0) && p[1] <= H + (m || 0);
+  // `f.texto` escala los rótulos del cielo (1 = 11 px; los overlays piden 1,5).
+  const sc = f.texto || 1;
   const rotulo = (p, nom, dx, colr, a) => {
-    g.globalAlpha = a; g.fillStyle = colr; g.font = '11px "Courier New", monospace';
-    g.fillText(nom, p[0] + dx, p[1] + 4); g.globalAlpha = 1;
+    g.globalAlpha = a; g.fillStyle = colr;
+    g.font = (11 * sc) + 'px "Courier New", monospace';
+    g.fillText(nom, p[0] + dx, p[1] + 4 * sc); g.globalAlpha = 1;
   };
 
   // 1. Constelaciones: líneas y rótulo en el centro de lo visible.
@@ -203,7 +206,8 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
     }
   }
   g.globalAlpha = .7;
-  g.fillStyle = col.constel || '#8fb0d8'; g.font = '12px "Courier New", monospace';
+  g.fillStyle = col.constel || '#8fb0d8';
+  g.font = (12 * sc) + 'px "Courier New", monospace';
   for(const id in vis){
     const t = vis[id];
     if(t[2] < 2) continue;
