@@ -65,6 +65,16 @@ function orientInfo(f){
   const brg = bearing(a.lat, a.lon, b.lat, b.lon);
   return cardAbrev((brg + 180) % 360) + '→' + cardAbrev(brg);
 }
+// Ficha del avión en Flightradar24 (data-aer es estático: el link se arma en el front).
+const FR24_AIRCRAFT = 'https://www.flightradar24.com/data/aircraft/';
+function regLink(reg){
+  const r = String(reg == null ? '' : reg).trim();
+  if(!r || r === '—') return '';
+  const url = FR24_AIRCRAFT + encodeURIComponent(r.toLowerCase());
+  return '<a class="ext reg" href="' + url + '" target="_blank" rel="noopener"' +
+    ' title="Ver ' + r + ' en Flightradar24">' + r + '</a>';
+}
+
 function tipoCell(f){
   let tipo = f.type_label || f.icao_type || '';
   let cat = f.ac_type_label || '';
@@ -79,7 +89,7 @@ function tipoCell(f){
       titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
     foto = ' <a class="mlink foto" href="#" data-fotok="' + kq + '">FOTO</a>';
   }
-  return '<span class="reg">' + f.registration + '</span>' + foto +
+  return regLink(f.registration) + foto +
          (tipo ? ' <span class="tipo">' + tipo + '</span>' : '');
 }
 
