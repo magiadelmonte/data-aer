@@ -71,8 +71,8 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.
 th, td { padding: 6px 12px; text-align: left; white-space: nowrap; }
 thead th { color: var(--tenue); font-size: 11px; font-weight: 400; letter-spacing: .09em; text-transform: uppercase; border-bottom: 1px solid var(--borde-suave); }
 tbody td { border-bottom: 1px solid var(--borde-suave); }
-.day.today tbody tr:nth-child(even) { background: var(--fila-alt); }
-.day.today tbody tr:hover, .day.live tbody tr:hover { background: var(--hover); }
+/* Todas las filas con el mismo fondo; el resaltado es solo el hover. */
+.day tbody tr:hover { background: var(--hover); }
 tbody tr:last-child td { border-bottom: none; }
 .hora, .dur { font-variant-numeric: tabular-nums; }
 .hora { font-weight: 700; color: var(--blanco); }
@@ -85,6 +85,13 @@ tbody tr:last-child td { border-bottom: none; }
 .na { color: var(--tenue); }
 .empty { margin: 0; padding: 16px; text-align: center; color: var(--tenue); font-size: .875rem; }
 .dir { font-weight: 700; letter-spacing: .02em; }
+td .dist { color: var(--blanco); font-variant-numeric: tabular-nums; }
+/* Globo de ayuda propio (reemplaza el `title` del navegador). */
+.tip { position: fixed; z-index: 10001; display: none; pointer-events: none;
+  max-width: 320px; padding: 4px 9px 5px; border-radius: 8px;
+  background: var(--c6, #efe2c3); color: var(--c13, #263e0e);
+  border: 1px solid var(--c13, #263e0e); font-size: 12px; line-height: 1.3;
+  letter-spacing: .02em; box-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
 /* Columna "Mapas": dos links por vuelo (SAT y, si entró al sector, FOV). */
 .mapas { white-space: nowrap; }
 .mlink { display: inline-block; padding: 1px 8px 2px; border: 1px solid var(--borde);

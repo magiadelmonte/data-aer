@@ -49,7 +49,9 @@ function capillaInfo(f){
   }
   const km = best.toLocaleString('es-AR',
     {minimumFractionDigits: 1, maximumFractionDigits: 1}) + ' km';
-  return '<span class="' + (best <= DATA.r1_km ? 'yes' : 'no') + '" title="' +
+  // Sin color por zona: la distancia va siempre en blanco (el detalle queda en el
+  // tooltip, que sí dice si pasó dentro de R1).
+  return '<span class="dist" title="' +
     (best <= DATA.r1_km ? 'dentro de R1' : 'fuera de R1') + '">' + km + '</span>';
 }
 function durHMS(sec){
@@ -319,3 +321,38 @@ setInterval(pollReportes, REPORT_REFRESH_MS);
 
 // Bloque "Reportes": se recarga junto con la tabla semanal (misma ventana de días).
 pollReportes();
+
+// ---- Tooltip propio -------------------------------------------------------
+// Los `title` nativos los dibuja el sistema (fondo celeste, fuera de la paleta).
+// Acá se reemplazan por un globo con los colores del skin: al entrar en un
+// elemento con `title` se copia el texto, se quita el atributo (para que no
+// aparezca el nativo) y se muestra el globo; se restaura al salir.
+(function(){
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  document.body.appendChild(tip);
+  let actual = null;
+  const mover = ev => {
+    tip.style.left = Math.min(ev.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top = (ev.clientY + 16) + 'px';
+  };
+  document.addEventListener('mouseover', ev => {
+    const el = ev.target.closest && ev.target.closest('[title]');
+    if(!el || el === actual) return;
+    if(actual) actual.setAttribute('title', actual.dataset.tipTxt || '');
+    actual = el;
+    el.dataset.tipTxt = el.getAttribute('title') || '';
+    el.removeAttribute('title');
+    tip.textContent = el.dataset.tipTxt;
+    tip.style.display = 'block';
+    mover(ev);
+  });
+  document.addEventListener('mousemove', ev => { if(actual) mover(ev); });
+  document.addEventListener('mouseout', ev => {
+    if(!actual) return;
+    if(ev.relatedTarget && actual.contains(ev.relatedTarget)) return;
+    actual.setAttribute('title', actual.dataset.tipTxt || '');
+    actual = null;
+    tip.style.display = 'none';
+  });
+})();
