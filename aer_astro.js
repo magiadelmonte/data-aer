@@ -68,6 +68,27 @@ function astroLunaEci(j){         // Luna geocéntrica (km), serie abreviada (~0
           R * (Math.sin(eps) * Math.cos(bet) * Math.sin(lam) + Math.cos(eps) * Math.sin(bet))];
 }
 
+// Dibuja la Luna con su fase real: disco oscuro (luz cenicienta) + la parte
+// iluminada, orientada hacia el Sol en pantalla, con el radio angular de su
+// distancia del momento (perigeo/apogeo, ~±5 %). Copia exacta de la de
+// sat_camara.html: si se cambia una, cambiar la otra.
+function astroDibujarLuna(g, x, y, r, ilum, angSol, lit, oscuro){
+  const k = Math.max(0, Math.min(1, ilum));
+  g.save();
+  g.translate(x, y); g.rotate(angSol || 0);
+  g.beginPath(); g.arc(0, 0, r, 0, 6.2832);
+  g.fillStyle = oscuro; g.fill();
+  if(k > 0.02){
+    const rx = r * Math.abs(1 - 2 * k);
+    g.beginPath();
+    g.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);      // mitad hacia el Sol
+    g.ellipse(0, 0, rx, r, 0, Math.PI / 2, -Math.PI / 2, k < 0.5);
+    g.closePath();
+    g.fillStyle = lit; g.fill();
+  }
+  g.restore();
+}
+
 function astroTeme2ecef(r, g){
   const c = Math.cos(g), s = Math.sin(g);
   return [r[0] * c + r[1] * s, -r[0] * s + r[1] * c, r[2]];
@@ -262,13 +283,19 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
   }
   const lm = astroLunaEci(j), sn = Math.hypot(sv[0], sv[1], sv[2]) || 1;
   const ilum = (1 - (lm[0] * sv[0] + lm[1] * sv[1] + lm[2] * sv[2]) /
-                    (Math.hypot(lm[0], lm[1], lm[2]) * sn)) / 2 * 100;
+                    (Math.hypot(lm[0], lm[1], lm[2]) * sn)) / 2;
   const lp = pAz(astroTeme2ecef(lm, gm));
   if(dentro(lp, 20)){
-    const rl = Math.max(4, focal * Math.tan(.26 * ASTRO_D2R));
-    g.fillStyle = 'rgba(235,235,215,' + (.35 + ilum / 160).toFixed(2) + ')';
-    g.beginPath(); g.arc(lp[0], lp[1], rl, 0, 6.2832); g.fill();
-    rotulo(lp, 'LUNA ' + Math.round(ilum) + '%', rl + 4, col.txt || '#d4c9b0', 1);
+    // Fase y tamaño reales: radio angular = asin(1737.4 km / distancia).
+    const distL = Math.hypot(lm[0], lm[1], lm[2]);
+    const rl = Math.max(2, focal * Math.tan(Math.asin(1737.4 / distL)));
+    const creciente = (lm[0] * sv[1] - lm[1] * sv[0]) > 0;
+    const angSol = Math.atan2(ps[1] - lp[1], ps[0] - lp[0]);
+    astroDibujarLuna(g, lp[0], lp[1], rl, ilum, angSol,
+                     'rgba(235,235,215,' + (.75 + ilum / 4).toFixed(2) + ')',
+                     'rgba(235,235,215,.10)');
+    rotulo(lp, 'LUNA ' + Math.round(ilum * 100) + '% ' + (creciente ? 'CREC.' : 'MENG.'),
+           rl + 4, col.txt || '#d4c9b0', 1);
   }
   for(const pl of ASTRO_PLANETAS){
     const rd = astroPlanetaRaDec(pl, T);
