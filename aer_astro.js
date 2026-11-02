@@ -288,7 +288,8 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
   if(dentro(lp, 20)){
     // Fase y tamaño reales: radio angular = asin(1737.4 km / distancia).
     const distL = Math.hypot(lm[0], lm[1], lm[2]);
-    const rl = Math.max(2, focal * Math.tan(Math.asin(1737.4 / distL)));
+    // +50 % respecto del tamaño angular real (pedido): sigue variando con la distancia.
+    const rl = Math.max(3, 1.5 * focal * Math.tan(Math.asin(1737.4 / distL)));
     const creciente = (lm[0] * sv[1] - lm[1] * sv[0]) > 0;
     // Dirección al Sol en pantalla. Si el Sol está fuera del encuadre (de noche
     // siempre lo está) `ps` es null: se usa un punto interpolado 5 % hacia el Sol
@@ -304,8 +305,7 @@ function astroDibujar(g, P, F, W, H, f, lat, lon, listo){
     astroDibujarLuna(g, lp[0], lp[1], rl, ilum, angSol,
                      'rgba(235,235,215,' + (.75 + ilum / 4).toFixed(2) + ')',
                      'rgba(235,235,215,.10)');
-    rotulo(lp, 'LUNA ' + Math.round(ilum * 100) + '% ' + (creciente ? 'CREC.' : 'MENG.'),
-           rl + 4, col.txt || '#d4c9b0', 1);
+    rotulo(lp, 'LUNA', rl + 4, col.txt || '#d4c9b0', 1);
   }
   for(const pl of ASTRO_PLANETAS){
     const rd = astroPlanetaRaDec(pl, T);
