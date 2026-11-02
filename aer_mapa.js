@@ -30,6 +30,7 @@ function alfaC(hex, a){
 const BLANCO = cssVar('--c11', '#ffffff');     // anillos, sector, trayectos, textos
 const ROJO = cssVar('--c7', '#ff4d4d');        // trayecto con altura / punto "alto"
 const GRIS = cssVar('--c8', '#ced19f');        // grilla y textos del FOV
+const SIERRA = cssVar('--c1', '#b4bf41');      // silueta del cerro (color 1 del skin)
 const MAP_BG = cssVar('--c5', '#000702');      // fondo del mapa
 const CELESTE = alfaC(cssVar('--c12', '#9ab87a'), .5);   // lineas y rotulos del base
 function parseColor(v){
@@ -506,7 +507,7 @@ function sierraFov(g, S, W, H, conRelleno){
     g.fillStyle = alfaC(MAP_BG, S.opacidad == null ? .7 : S.opacidad);
     g.fill();
   }
-  trazo(); g.strokeStyle = alfaC(ROJO, .9); g.lineWidth = 2;
+  trazo(); g.strokeStyle = SIERRA; g.lineWidth = 2 * (W / 1920);
   g.setLineDash([]); g.stroke();
 }
 
