@@ -5,7 +5,7 @@
 :root {
   --txt: var(--c8, #ced19f);
   --fondo: var(--c5, #000702);
-  --fondo-canvas: var(--c12, #9ab87a);
+  --fondo-canvas: var(--c5, #000702);
   --panel: var(--c5, #000702);
   --celeste: var(--c12, #9ab87a);
   --borde: rgba(var(--c2-rgb, 116, 142, 64), .45);
