@@ -88,24 +88,8 @@ function partirCapilla(tf){
 let MMAP = null, MMAP_READY = null, MACTUAL = null;
 let MTRAJ_IDS = [], MPLANE = null;
 
-function trajOf(k){                      // vuelo cerrado (trayectos.json) o en curso (r1_live.json)
-  return TKEY[k] || (typeof LIVE_TKEY !== 'undefined' && LIVE_TKEY[k]) || null;
-}
-// Centro, anillos y FOV del vuelo en curso, tomados de r1_live.json. Permite abrir
-// el mapa de un vuelo activo aunque el JSON de trayectos del día todavía no se
-// haya publicado (el publish solo lo escribe cuando cierra el primer vuelo).
-function baseDeLive(){
-  if(typeof liveData === 'undefined' || !liveData) return null;
-  if(liveData.center_lat == null || liveData.center_lon == null) return null;
-  const r1 = liveData.r1_km || 25;
-  const fov = liveData.fov || null;
-  return {
-    center_lat: liveData.center_lat,
-    center_lon: liveData.center_lon,
-    rings_km: liveData.rings_km || [r1, r1 * 2, (fov && fov.radius_km) || 65],
-    fov: fov,
-    flights: liveData.flights || []
-  };
+function trajOf(k){                      // trayecto del vuelo (trayectos_AAAAMMDD.json)
+  return TKEY[k] || null;
 }
 const diaDeClave = k => dayKey(String(k).split('|')[1] || '');   // fecha del vuelo
 
@@ -845,8 +829,7 @@ let SIN_FOV = false;   // true: el vuelo no tiene FOV, la modal no ofrece ese ma
 function abrirTrayecto(k, modo, nofov){
   if(nofov) modo = 'sat';
   const day = diaDeClave(k);
-  // Día todavía no bajado: se pide su JSON en paralelo. Si el vuelo ya está en
-  // memoria (r1_live.json), el mapa se abre igual con el base en vivo.
+  // Día todavía no bajado: se pide su JSON en paralelo.
   if(day && !TRAJ_DIAS[day]) cargarDia(day).catch(() => {});
   const f = trajOf(k);
   if(f){ mostrarTrayecto(f, modo, nofov); return; }
@@ -858,13 +841,8 @@ function abrirTrayecto(k, modo, nofov){
 
 function mostrarTrayecto(f, modo, nofov){
   const day = diaDeClave(f.k);
-  if(TRAJ_DIAS[day]) TRAJ = TRAJ_DIAS[day];
-  else {
-    // Sin el JSON del día (aún no publicado): se usa el base de r1_live.json.
-    const b = baseDeLive();
-    if(b) TRAJ = b;
-  }
-  if(TRAJ.center_lat == null) return;
+  if(!TRAJ_DIAS[day]) return;      // el día todavía no está publicado
+  TRAJ = TRAJ_DIAS[day];
   SIN_FOV = !!nofov || modo === 'nofov';
   MODO = (modo === 'fov' && !SIN_FOV) ? 'fov' : 'sat';
   tituloModal(f, MODO);

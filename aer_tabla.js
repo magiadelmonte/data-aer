@@ -150,14 +150,12 @@ function vueloLink(f){
     encodeURIComponent(cs) + '" target="_blank" rel="noopener noreferrer">' +
     cs + '</a>';
 }
-function rowHtml(f, live){
+function rowHtml(f){
   const flag = f.country
     ? '<img class="flag" src="https://flagcdn.com/w40/' + f.country +
       '.png" onerror="this.style.display=\'none\'">' : '';
   const pais = f.country_name_spa || f.country_name_eng || f.country || '';
-  const dur = live
-    ? durHMS(Math.max(0, Math.floor(Date.now() / 1000 - (f.ts_start || 0))))
-    : durHMS(f.duration_sec);
+  const dur = durHMS(f.duration_sec);
   return '<tr>' +
     '<td class="hora">' + hourMin(f.ts_paso_iso || f.ts_start_iso) + '</td>' +
     '<td class="dur">' + dur + '</td>' +
@@ -171,43 +169,11 @@ function rowHtml(f, live){
 }
 
 function daySection(key, flights, open){
-  const rows = flights.map(f => rowHtml(f, false)).join('');
+  const rows = flights.map(f => rowHtml(f)).join('');
   const secCls = 'day' + (open ? ' open' : '') + (key === DATA.today ? ' today' : '');
   return '<section class="' + secCls + '" data-key="' + key + '"><h2 class="day-title toggle">' + fmtDay(key) + '</h2>' +
     '<div class="day-body"><table><thead>' + HEAD + '</thead>' +
     '<tbody>' + rows + '</tbody></table></div></section>';
-}
-
-let liveData = { flights: [] };
-let LIVE_TKEY = {};                      // vuelos en curso -> trayecto para el mapa
-function liveTrayectos(flights){
-  const out = {};
-  flights.forEach(f => {
-    out[rowKey(f)] = {k: rowKey(f), callsign: f.callsign, ts_start_iso: f.ts_start_iso,
-      ac_type_label: f.ac_type_label, registration: f.registration, country: f.country,
-      icon: f.icon || 'airliner',
-      path: (f.path || []).map(p => [p.lat, p.lon, p.alt_m,
-        p.in_fov === false ? 0 : 1, p.elev_deg, p.hora])};
-  });
-  return out;
-}
-function renderLive(){
-  const box = document.getElementById('live');
-  const flights = (liveData && liveData.flights) || [];
-  LIVE_TKEY = liveTrayectos(flights);
-  const body = flights.length
-    ? '<table><thead>' + HEAD + '</thead><tbody>' +
-        flights.map(f => rowHtml(f, true)).join('') + '</tbody></table>'
-    : '<p class="empty">Sin vuelos sobre la zona</p>';
-  box.innerHTML = '<section class="day open live">' +
-    '<h2 class="day-title">Vuelos actuales<span class="live-dot"></span></h2>' +
-    '<div class="day-body">' + body + '</div></section>';
-  marcarFilas();
-}
-function pollLive(){
-  getJson('r1_live.json')
-    .then(j => { liveData = j || { flights: [] }; renderLive(); })
-    .catch(() => {});
 }
 
 // Bloque "Totales semanales": máximos por categoría (horario/aerolínea/tipo/país/
@@ -327,7 +293,6 @@ function mensajeSinDatos(){
     ev.preventDefault();
     days.innerHTML = '<p class="na" style="text-align:center">Se están actualizando los datos de los vuelos…</p>';
     loadWeek(true);
-    pollLive();
     pollReportes();
   });
 }
@@ -351,12 +316,6 @@ const _p = new URLSearchParams(location.search);
 const REPORT_REFRESH_MS = Math.max(10000, parseInt(_p.get('report') || '60000', 10) || 60000);
 pollReportes();
 setInterval(pollReportes, REPORT_REFRESH_MS);
-
-// Bloque "Vuelos actuales": recarga r1_live.json cada LIVE_REFRESH_MS (def. 60 s).
-// Se puede ajustar con ?live=<ms> en la URL (mínimo 10 s).
-const LIVE_REFRESH_MS = Math.max(10000, parseInt(_p.get('live') || '60000', 10) || 60000);
-pollLive();
-setInterval(pollLive, LIVE_REFRESH_MS);
 
 // Bloque "Reportes": se recarga junto con la tabla semanal (misma ventana de días).
 pollReportes();
