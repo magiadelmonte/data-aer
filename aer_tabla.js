@@ -158,7 +158,7 @@ function rowHtml(f){
       '.png" onerror="this.style.display=\'none\'">' : '';
   const pais = f.country_name_spa || f.country_name_eng || f.country || '';
   const dur = durHMS(f.duration_sec);
-  return '<tr>' +
+  return '<tr data-k="' + rowKey(f).replace(/"/g, '&quot;') + '">' +
     '<td class="hora">' + hourMin(f.ts_paso_iso || f.ts_start_iso) + '</td>' +
     '<td class="dur">' + dur + '</td>' +
     '<td>' + vueloLink(f) + '</td>' +
@@ -259,6 +259,35 @@ function render(){
 document.getElementById('days').addEventListener('click', e => {
   const t = e.target.closest('.day-title.toggle');
   if(t) t.parentElement.classList.toggle('open');
+});
+
+// ---- Actualización manual desde la tabla (sólo en el Flask local) ----------
+// Ctrl+Shift+doble clic sobre la fila de un vuelo abre `tools/aer_manual.html`
+// con los datos ya cargados (hex, matrícula, callsign, tipo) y la búsqueda en
+// FR24 disparada, igual que el clic en las tarjetas de mapa_aer_onair. La
+// herramienta no se publica, así que en el sitio público no se activa.
+const ES_LOCAL = /^(127\.0\.0\.1|localhost|\[?::1\]?)$/.test(location.hostname);
+function abrirUpdate(f){
+  const q = new URLSearchParams();
+  if(f.registration) q.set('matricula', String(f.registration).toUpperCase());
+  if(f.callsign) q.set('callsign', String(f.callsign).toUpperCase());
+  if(f.icao_type) q.set('tipo', String(f.icao_type).toUpperCase());
+  if(f.icao24) q.set('hex', String(f.icao24).toUpperCase());
+  q.set('auto', '1');
+  window.open('tools/aer_manual.html?' + q.toString(), '_blank', 'noopener');
+}
+const daysBox = document.getElementById('days');
+// Con Ctrl+Shift los links de la fila no navegan: el gesto es para el update.
+daysBox.addEventListener('click', e => {
+  if(ES_LOCAL && e.ctrlKey && e.shiftKey && e.target.closest('tr[data-k]'))
+    e.preventDefault();
+}, true);
+daysBox.addEventListener('dblclick', e => {
+  if(!ES_LOCAL || !e.ctrlKey || !e.shiftKey) return;
+  const tr = e.target.closest('tr[data-k]');
+  if(!tr) return;
+  const f = (DATA.flights || []).find(x => rowKey(x) === tr.dataset.k);
+  if(f) abrirUpdate(f);
 });
 
 // Los JSON se publican por snapshot: un pedido puede caer justo mientras el archivo
