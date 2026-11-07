@@ -334,7 +334,9 @@ function loadWeek(first){
 }
 function tickReloj(){
   const d = new Date();
-  document.getElementById('reloj').innerHTML = '<div class="fecha">' + d.toLocaleDateString('es-AR') +
+  const p = n => String(n).padStart(2, '0');      // dd/mm/aaaa con día y mes a 2 dígitos
+  const fecha = p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+  document.getElementById('reloj').innerHTML = '<div class="fecha">' + fecha +
     '</div><div class="hora">' + d.toLocaleTimeString('es-AR', {hour12: false}) + '</div>';
 }
 tickReloj(); setInterval(tickReloj, 1000);
