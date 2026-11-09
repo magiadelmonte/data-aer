@@ -82,16 +82,20 @@ function tipoCell(f){
   let cat = f.ac_type_label || '';
   if(!tipo){ tipo = cat; cat = ''; }
   if(cat) tipo += '<span class="cat">' + cat + '</span>';
-  // Matricula + boton FOTO (solo si hay foto cargada), juntos en la columna Aeronave.
+  // Miniatura 16:9 de la foto (si hay) delante de la matricula, en la columna
+  // Aeronave. Tiene el alto de la fila y al tocarla se abre la foto grande.
   if(!f.registration) return tipo;
   const k = rowKey(f), kq = k.replace(/"/g, '&quot;');
   let foto = '';
-  if(f.photo && f.photo.url){
-    FOTOS[k] = {url: f.photo.url,
+  if(f.photo && (f.photo.thumb || f.photo.url)){
+    const src = f.photo.thumb || f.photo.url;
+    FOTOS[k] = {url: f.photo.url || src,
       titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
-    foto = ' <a class="mlink foto" href="#" data-fotok="' + kq + '">FOTO</a>';
+    foto = '<img class="thumb" src="' + src + '" alt="" loading="lazy"' +
+      ' data-fotok="' + kq + '" title="Ver foto"' +
+      ' onerror="this.style.display=\'none\'">';
   }
-  return regLink(f.registration) + foto +
+  return foto + regLink(f.registration) +
          (tipo ? ' <span class="tipo">' + tipo + '</span>' : '');
 }
 
@@ -139,7 +143,7 @@ document.getElementById('fotomodal').addEventListener('click', e => {
 document.getElementById('fclose').addEventListener('click', cerrarFoto);
 document.addEventListener('keydown', e => { if(e.key === 'Escape') cerrarFoto(); });
 document.addEventListener('click', e => {
-  const a = e.target.closest('a.mlink[data-fotok]');
+  const a = e.target.closest('[data-fotok]');
   if(!a) return;
   e.preventDefault();
   abrirFoto(a.dataset.fotok);
