@@ -98,9 +98,11 @@ td .dist { color: var(--blanco); font-variant-numeric: tabular-nums; }
   letter-spacing: .05em; transition: background .12s, color .12s; }
 .mlink:hover { background: var(--hover); color: var(--blanco); }
 .mlink.off { color: var(--tenue); opacity: .4; pointer-events: none; }
-.thumb { vertical-align: middle; height: 1.5em; aspect-ratio: 16 / 9;
-  object-fit: cover; margin-right: 7px; border: 1px solid var(--borde);
-  border-radius: 4px; background: var(--fondo-canvas); cursor: zoom-in; }
+.acell { display: inline-flex; align-items: center; gap: 7px; }
+.actxt { display: block; }
+.thumb { height: 1.5em; aspect-ratio: 16 / 9; object-fit: cover;
+  border: 1px solid var(--borde); border-radius: 4px;
+  background: var(--fondo-canvas); cursor: zoom-in; }
 /* Las filas con categoria (dos lineas en Aeronave) llevan la miniatura al alto
    completo de la fila. */
 tbody tr:has(.cat) .thumb { height: 3em; }

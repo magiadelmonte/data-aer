@@ -83,8 +83,8 @@ function tipoCell(f){
   if(!tipo){ tipo = cat; cat = ''; }
   if(cat) tipo += '<span class="cat">' + cat + '</span>';
   // Miniatura 16:9 de la foto (si hay) delante de la matricula, en la columna
-  // Aeronave. Tiene el alto de la fila y al tocarla se abre la foto grande.
-  if(!f.registration) return tipo;
+  // Aeronave. Tiene el alto de la fila y al tocarla se abre la foto grande. El
+  // texto (matricula + tipo, y la categoria debajo) va en su propia columna.
   const k = rowKey(f), kq = k.replace(/"/g, '&quot;');
   let foto = '';
   if(f.photo && (f.photo.thumb || f.photo.url)){
@@ -95,8 +95,12 @@ function tipoCell(f){
       ' data-fotok="' + kq + '" title="Ver foto"' +
       ' onerror="this.style.display=\'none\'">';
   }
-  return foto + regLink(f.registration) +
-         (tipo ? ' <span class="tipo">' + tipo + '</span>' : '');
+  const txt = f.registration
+    ? regLink(f.registration) + (tipo ? ' <span class="tipo">' + tipo + '</span>' : '')
+    : tipo;
+  if(!foto && !txt) return '';
+  return '<span class="acell">' + foto +
+    (txt ? '<span class="actxt">' + txt + '</span>' : '') + '</span>';
 }
 
 const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +
