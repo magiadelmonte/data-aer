@@ -104,7 +104,7 @@ td .dist { color: var(--blanco); font-variant-numeric: tabular-nums; }
 .thumb { flex: 0 0 auto; height: 3em; aspect-ratio: 16 / 9; object-fit: cover;
   border: 1px solid var(--borde); border-radius: 4px;
   background: var(--fondo-canvas); cursor: zoom-in; }
-.thumb.ph { cursor: default; }
+.thumb.ph { background: transparent; cursor: default; }
 a.ext { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--borde); }
 a.ext:hover { color: var(--blanco); border-bottom-color: var(--acento); }
 td .reg { color: var(--blanco); font-weight: 600; letter-spacing: .02em; }
