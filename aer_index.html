@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Aeronaves: Registro | Observatorio Uritorco - Magia del Monte</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<!-- Paleta del overlay mapa_aer: la genera publish_aer.py desde el skin. Con
+     ?skin=<id> se elige otra (aer_skin.css trae las dos). -->
+<script>(function(){var s=new URLSearchParams(location.search).get('skin');if(s)document.documentElement.dataset.skin=s;})();</script>
+<link rel="stylesheet" href="aer_skin.css">
+<link rel="stylesheet" href="aer.css?v=20261108b">
+</head>
+<body>
+<header>
+  <div id="reloj"></div>
+  <h1>OBSERVATORIO URITORCO de Magia del Monte</h1>
+  <div class="subtitle">Vuelos registrados: aeronaves en el campo de la cámara.</div>
+  <div class="rule"></div>
+  <a id="vivo" href="https://www.youtube.com/@MagiaDelMonte/streams" target="_blank" rel="noopener"><span>Uritorco</span><span>en <b>VIVO</b></span></a>
+</header>
+<main>
+  <div id="reportes"></div>
+  <div id="days"></div>
+</main>
+<footer id="foot"></footer>
+
+<div id="modal" aria-hidden="true">
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtit">
+    <div class="mhead"><div id="mtit"></div><span class="msub" id="msub"></span></div>
+    <div class="mruta" id="mruta" hidden>
+      <div class="mrdatos" id="mrdatos"></div>
+      <div class="mracc" id="mracc"></div>
+    </div>
+    <div id="mmap"></div>
+    <div id="mfovbox"><canvas id="mfov"></canvas></div>
+    <div class="mfoot">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></div>
+  </div>
+</div>
+
+
+<div id="fotomodal" aria-hidden="true">
+  <div class="fbox" role="dialog" aria-modal="true" aria-labelledby="ftit">
+    <div class="fhead"><span id="ftit"></span>
+      <button type="button" class="fclose" id="fclose" aria-label="Cerrar">×</button></div>
+    <div class="fbody"><img id="fimg" alt=""></div>
+  </div>
+</div>
+
+<script src="aer_iconos.js?v=20261031e"></script>
+<script src="aer_tabla.js?v=20261108b"></script>
+<script src="aer_astro.js?v=20261031g"></script>
+<script src="aer_mapa.js?v=20261102b"></script>
+<script>
+// Si el shell vino de caché con una versión vieja, se recarga solo con un query
+// nuevo (GitHub Pages cachea 10 min). Una sola vez por build y por sesión.
+(function(){
+  var src = (document.querySelector('script[src*="aer_mapa"]') || {}).src || "";
+  var m = /[?&]v=([^&"]+)/.exec(src), cur = m && m[1];
+  if(!cur || !window.fetch) return;
+  fetch("version.json?_=" + Date.now(), {cache: "no-store"})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(v){
+      if(!v || !v.build || v.build === cur) return;
+      try{
+        var key = "aer_build_" + v.build;
+        if(sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+      }catch(e){}
+      var u = new URL(location.href);
+      u.searchParams.set("_v", v.build);
+      location.replace(u.toString());
+    })
+    .catch(function(){});
+})();
+</script>
+</body>
+</html>

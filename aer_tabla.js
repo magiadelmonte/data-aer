@@ -78,29 +78,29 @@ function regLink(reg){
 }
 
 function tipoCell(f){
-  let tipo = f.type_label || f.icao_type || '';
-  let cat = f.ac_type_label || '';
-  if(!tipo){ tipo = cat; cat = ''; }
-  if(cat) tipo += '<span class="cat">' + cat + '</span>';
-  // Miniatura 16:9 de la foto (si hay) delante de la matricula, en la columna
-  // Aeronave. Tiene el alto de la fila y al tocarla se abre la foto grande. El
-  // texto (matricula + tipo, y la categoria debajo) va en su propia columna.
+  const tipo = f.type_label || f.icao_type || '';   // modelo de avion
+  const cat = f.ac_type_label || '';                // tipo de vuelo
+  // Columna Aeronave: miniatura 16:9 (o recuadro vacio, siempre del mismo
+  // tamano) y, al lado, dos renglones fijos: matricula + modelo arriba y tipo
+  // de vuelo abajo. Si falta el modelo o el tipo de vuelo, el renglon queda
+  // vacio (la fila mantiene el alto).
   const k = rowKey(f), kq = k.replace(/"/g, '&quot;');
-  let foto = '';
+  let foto = '<span class="thumb ph" aria-hidden="true"></span>';
   if(f.photo && (f.photo.thumb || f.photo.url)){
     const src = f.photo.thumb || f.photo.url;
     FOTOS[k] = {url: f.photo.url || src,
       titulo: [f.registration, f.type_label].filter(Boolean).join(' · ')};
     foto = '<img class="thumb" src="' + src + '" alt="" loading="lazy"' +
       ' data-fotok="' + kq + '" title="Ver foto"' +
-      ' onerror="this.style.display=\'none\'">';
+      ' onerror="this.outerHTML=\'<span class=&quot;thumb ph&quot;></span>\'">';
   }
-  const txt = f.registration
-    ? regLink(f.registration) + (tipo ? ' <span class="tipo">' + tipo + '</span>' : '')
-    : tipo;
-  if(!foto && !txt) return '';
+  const linea1 = regLink(f.registration) +
+    (tipo ? ' <span class="tipo">' + tipo + '</span>' : '');
   return '<span class="acell">' + foto +
-    (txt ? '<span class="actxt">' + txt + '</span>' : '') + '</span>';
+    '<span class="actxt">' +
+      '<span class="acl">' + (linea1 || '&nbsp;') + '</span>' +
+      '<span class="acl cat">' + (cat || '&nbsp;') + '</span>' +
+    '</span></span>';
 }
 
 const HEAD = '<tr><th>Hora</th><th>Duración</th><th>Vuelo</th><th>Aeronave</th>' +

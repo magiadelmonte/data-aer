@@ -75,7 +75,7 @@ tbody td { border-bottom: 1px solid var(--borde-suave); }
 tbody tr:last-child td { border-bottom: none; }
 .hora, .dur { font-variant-numeric: tabular-nums; }
 .hora { font-weight: 700; color: var(--blanco); }
-.cat { display: block; color: var(--tenue); font-size: 11px; }
+.cat { color: var(--tenue); font-size: 11px; }
 .tot { color: var(--tenue); }
 .flag { vertical-align: middle; margin-right: 6px; width: 17px; height: 12px; object-fit: cover; border: 1px solid var(--borde); border-radius: 2px; }
 .mark { font-weight: 700; }
@@ -99,13 +99,12 @@ td .dist { color: var(--blanco); font-variant-numeric: tabular-nums; }
 .mlink:hover { background: var(--hover); color: var(--blanco); }
 .mlink.off { color: var(--tenue); opacity: .4; pointer-events: none; }
 .acell { display: inline-flex; align-items: center; gap: 7px; }
-.actxt { display: block; }
-.thumb { height: 1.5em; aspect-ratio: 16 / 9; object-fit: cover;
+.actxt { display: flex; flex-direction: column; justify-content: center; }
+.acl { display: block; min-height: 1.5em; }
+.thumb { flex: 0 0 auto; height: 3em; aspect-ratio: 16 / 9; object-fit: cover;
   border: 1px solid var(--borde); border-radius: 4px;
   background: var(--fondo-canvas); cursor: zoom-in; }
-/* Las filas con categoria (dos lineas en Aeronave) llevan la miniatura al alto
-   completo de la fila. */
-tbody tr:has(.cat) .thumb { height: 3em; }
+.thumb.ph { cursor: default; }
 a.ext { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--borde); }
 a.ext:hover { color: var(--blanco); border-bottom-color: var(--acento); }
 td .reg { color: var(--blanco); font-weight: 600; letter-spacing: .02em; }
