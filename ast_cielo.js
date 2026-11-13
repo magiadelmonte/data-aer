@@ -234,7 +234,7 @@ function astCieloDibujar(o){
   // 1. Constelaciones: líneas y rótulo en el centro de lo visible.
   const tConstel = on('CONSTEL'), vis = {};
   g.strokeStyle = col.constel || '#8fb0d8';
-  g.lineWidth = .8; g.setLineDash([]); g.globalAlpha = constelAlfa;
+  g.lineWidth = 1; g.setLineDash([]); g.globalAlpha = constelAlfa;
   for(const id in cat.constel.l){
     for(const seg of cat.constel.l[id]){
       g.beginPath(); let pen = false;
@@ -250,7 +250,7 @@ function astCieloDibujar(o){
       if(tConstel) g.stroke();
     }
   }
-  g.globalAlpha = .7;
+  g.globalAlpha = .85;
   g.fillStyle = col.constel || '#8fb0d8';
   g.font = (12 * sc) + 'px "Courier New", monospace';
   for(const id in vis){

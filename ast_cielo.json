@@ -5,12 +5,12 @@
     "hasta": "05:30"
   },
   "colores": {
-    "estrella": "#cfd8ff",
-    "constel": "#8fb0d8",
+    "estrella": "#8fdc7a",
+    "constel": "#6fbf8a",
     "profundo": "#8fb8c8",
     "sol": "#ffe27a",
     "planeta": "#ffb877",
     "txt": "#d4c9b0"
   },
-  "constelAlfa": 0.1575
+  "constelAlfa": 0.5
 }
