@@ -276,8 +276,7 @@ function initMapa(cont){
     })
     .catch(() => { if(!estiloAplicado) aplicar(fondo, true); });
   setTimeout(fin, 12000);            // red de seguridad: nunca sin features
-  MMAP_READY = cargado;
-  MMAP_READY.then(() => {
+  MMAP_READY = cargado.then(() => {
       // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
       const FOV = TRAJ.fov;
       if(FOV){
