@@ -70,7 +70,7 @@ function pintarDatos(d, f){
   document.getElementById('raeronave').innerHTML = bloque('Aeronave', [
     fila('Matrícula', d.registration || f.registration || null),
     fila('Modelo', modelo),
-    fila('Categoría', d.category_label || null),
+    fila('Categoría', d.category_label || d.class_label || d.ac_type_label || null),
     fila('Motor', motor),
     fila('País', pais ? bandera(d.country || f.country) + esc2(pais) : null),
   ]);

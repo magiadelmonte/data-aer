@@ -243,9 +243,22 @@ function initMapa(cont){
     aplicado = true;
     m.setStyle(st, {diff: false});
   };
+  // Espera a que el estilo este cargado. El evento solo no alcanza (si se
+  // registra justo despues de que el estilo termino, no llega nunca): se
+  // consulta cada 100 ms y a los 5 s se sigue igual para no dejar el mapa sin
+  // anillos ni trayecto.
   const esperarEstilo = () => new Promise(res => {
-    if(m.isStyleLoaded()) return res();
-    m.once('style.load', () => res());
+    let hecho = false, iv = null;
+    const fin = () => {
+      if(hecho) return;
+      hecho = true;
+      if(iv) clearInterval(iv);
+      res();
+    };
+    if(m.isStyleLoaded()) return fin();
+    m.once('style.load', fin);
+    iv = setInterval(() => { if(m.isStyleLoaded()) fin(); }, 100);
+    setTimeout(fin, 5000);
   });
   const conBase = fetch(MAP_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
@@ -264,7 +277,7 @@ function initMapa(cont){
       m.setStyle(estiloMapa(base, nivel), {diff: false});
     })
     .catch(() => {});
-  MMAP_READY = Promise.race([conBase, new Promise(res => setTimeout(res, 7000))])
+  MMAP_READY = Promise.race([conBase, new Promise(res => setTimeout(res, 4000))])
     .then(() => {
       if(!aplicado) aplicar(fondo);
       return esperarEstilo();
