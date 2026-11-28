@@ -241,6 +241,14 @@ function initMapa(cont){
   const agregarCapas = () => {
       MLABELS.forEach(mk => mk.remove());
       MLABELS = [];
+      // Si el estilo se re-aplica (validación en varios niveles) las capas
+      // propias pueden estar: se sacan antes de volver a agregarlas.
+      ['sector'].concat(rings.map(r => 'ring' + r)).forEach(id => {
+        try {
+          if(m.getLayer(id)) m.removeLayer(id);
+          if(m.getSource(id)) m.removeSource(id);
+        } catch(e) { /* estilo a medio cargar */ }
+      });
       // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
       const FOV = TRAJ.fov;
       if(FOV){
