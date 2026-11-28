@@ -10,7 +10,7 @@
 <!-- Paleta del sitio: `?skin=<id>` elige otra (aer_skin.css trae las dos). -->
 <script>(function(){var s=new URLSearchParams(location.search).get('skin');if(s)document.documentElement.dataset.skin=s;})();</script>
 <link rel="stylesheet" href="aer_skin.css">
-<link rel="stylesheet" href="aer.css?v=20261128j">
+<link rel="stylesheet" href="aer.css?v=20261128k">
 </head>
 <body class="rresumen">
 <header class="rhead">
@@ -32,10 +32,14 @@
     </section>
 
     <section class="rdatos">
-      <div class="rfoto" id="rfoto"></div>
-      <div class="rbloque" id="raeronave"></div>
-      <div class="rbloque" id="rvuelo"></div>
-      <div class="rbloque" id="rruta"></div>
+      <!-- `#rfit` se escala (transform) si el contenido no entra en el alto
+           disponible: asi los datos se ven siempre, sin scroll. -->
+      <div class="rfit" id="rfit">
+        <div class="rfoto" id="rfoto"></div>
+        <div class="rbloque" id="raeronave"></div>
+        <div class="rbloque" id="rvuelo"></div>
+        <div class="rbloque" id="rruta"></div>
+      </div>
     </section>
   </div>
 </main>
@@ -43,10 +47,10 @@
 <div id="rmensaje" hidden></div>
 
 <script>window.AST_BASE = "";</script>
-<script src="aer_iconos.js?v=20261128j"></script>
-<script src="aer_resumen_base.js?v=20261128j"></script>
-<script src="ast_cielo.js?v=20261128j"></script>
-<script src="aer_mapa.js?v=20261128j"></script>
-<script src="aer_resumen.js?v=20261128j"></script>
+<script src="aer_iconos.js?v=20261128k"></script>
+<script src="aer_resumen_base.js?v=20261128k"></script>
+<script src="ast_cielo.js?v=20261128k"></script>
+<script src="aer_mapa.js?v=20261128k"></script>
+<script src="aer_resumen.js?v=20261128k"></script>
 </body>
 </html>

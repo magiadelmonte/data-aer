@@ -233,8 +233,8 @@ body.rresumen { display: flex; flex-direction: column; height: 100vh;
 .rhead h1 { margin: 0; font-size: clamp(14px, 1.8vw, 22px); line-height: 1.2;
   letter-spacing: 2px; font-weight: 700; color: var(--blanco); text-align: center; }
 main.resumen { flex: 1 1 auto; min-height: 0; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 12px;
-  max-width: none; width: 100%; margin: 0; }
+  grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr);
+  gap: 10px; padding-bottom: 12px; max-width: none; width: 100%; margin: 0; }
 .rmapa, .rfov, .rdatos { position: relative; min-width: 0; min-height: 0;
   background: var(--panel); border: 1px solid var(--borde);
   border-radius: var(--radio); }
@@ -256,17 +256,22 @@ main.resumen { flex: 1 1 auto; min-height: 0; display: grid;
 .rfovmsg { display: flex; min-height: 120px; align-items: center;
   justify-content: center; font-size: .875rem; color: var(--tenue); }
 .rfovmsg[hidden] { display: none; }
-.rdatos { flex: 1 1 auto; min-height: 0; display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px 16px; padding: 10px 12px; overflow: auto; }
-.rfoto { min-width: 0; min-height: 0; border: 1px solid var(--borde);
-  border-radius: 10px; overflow: hidden; background: var(--fondo-canvas);
-  display: flex; align-items: center; justify-content: center; }
-.rfoto img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.rdatos { flex: 1 1 auto; min-height: 0; overflow: hidden;
+  padding: 10px 12px; }
+/* Grilla 2x2 con filas por contenido; si no entra en el alto disponible se
+   escala entera (JS, `ajustarDatos`) para que se vea todo sin scroll. */
+.rfit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px;
+  width: 100%; transform-origin: top center; }
+.rfoto { position: relative; min-width: 0; min-height: 90px;
+  border: 1px solid var(--borde); border-radius: 10px; overflow: hidden;
+  background: var(--fondo-canvas); }
+.rfoto img { position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; display: block; }
+.rfoto .rplaceholder { position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center; }
 .rfoto .rplaceholder { font-size: 13px; letter-spacing: .08em;
   text-transform: uppercase; color: var(--tenue); }
-.rbloque { min-width: 0; min-height: 0; overflow: hidden; }
+.rbloque { min-width: 0; min-height: 0; }
 .rbloque h2 { margin: 0 0 4px; padding-bottom: 2px;
   border-bottom: 1px solid var(--borde); color: var(--blanco);
   font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
@@ -274,6 +279,13 @@ table.rtabla { font-size: 12.5px; line-height: 1.35; }
 table.rtabla th, table.rtabla td { padding: 2px 0; border: 0;
   white-space: normal; vertical-align: top; }
 table.rtabla th { width: 46%; padding-right: 8px; color: var(--tenue); font-weight: 400; }
+@media (max-height: 820px) {
+  .rdatos { padding: 8px 10px; }
+  .rfit { gap: 6px 14px; }
+  table.rtabla { font-size: 11.5px; line-height: 1.28; }
+  .rbloque h2 { font-size: 11px; margin-bottom: 3px; }
+  .rfoto { min-height: 76px; }
+}
 table.rtabla td { color: var(--blanco); }
 #rmensaje { position: fixed; inset: 0; z-index: 50; display: flex;
   align-items: center; justify-content: center; padding: 24px;

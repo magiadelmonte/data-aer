@@ -493,6 +493,10 @@ function dibujarTrayecto(f){
 // azimut/elevación desde el observatorio: cada punto cae donde lo vería la cámara.
 // ============================================================
 let MFOV_ON = false, MFOV_PTS = null, MFOV_TIP = null, MFOV_CV = null;
+// Alto maximo del lienzo FOV (px). La pagina de resumen lo fija para que el FOV
+// no se coma el alto de los datos en pantallas bajas; si el ancho entra en ese
+// alto, el lienzo ocupa todo el ancho de la caja.
+let FOV_MAX_ALTO = null;
 
 function camBasis(F){                    // vectores de la cámara (ENU), igual que SAT
   const ca = F.az0 * Math.PI / 180, ce = F.el0 * Math.PI / 180;
@@ -551,9 +555,10 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  // El lienzo ocupa todo el ancho de la caja (la caja crece con el, tanto en la
-  // modal como en la pagina de resumen). No usar dispH: se realimenta.
-  const W = dispW, H = W / ratio;
+  // El lienzo ocupa todo el ancho de la caja, salvo que haya un alto maximo
+  // (`FOV_MAX_ALTO`, solo en el resumen) y el ancho no entre: ahi manda el alto.
+  const W = FOV_MAX_ALTO ? Math.min(dispW, FOV_MAX_ALTO * ratio) : dispW;
+  const H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);

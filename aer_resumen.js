@@ -105,6 +105,26 @@ function dibujarSat(f){
   });
 }
 
+// Si el contenido de los datos no entra en el alto disponible se escala entero
+// (sin scroll): se mide sin transformar y se aplica el factor que lo hace entrar.
+function ajustarDatos(){
+  const box = document.querySelector('.rdatos');
+  const fit = document.getElementById('rfit');
+  if(!box || !fit) return;
+  fit.style.transform = 'none';
+  const alto = fit.getBoundingClientRect().height;
+  const disp = box.clientHeight;
+  if(!alto || !disp) return;
+  const s = Math.min(1, disp / alto);
+  fit.style.transform = s < 0.995 ? 'scale(' + s.toFixed(4) + ')' : 'none';
+}
+
+// Alto del FOV: 52 % de la columna como maximo, para dejarle lugar a los datos.
+function altoFov(){
+  const col = document.querySelector('.rcol');
+  FOV_MAX_ALTO = col ? Math.max(140, Math.round(col.clientHeight * 0.52)) : null;
+}
+
 // Mapa FOV: si el vuelo no cruzó el sector, queda el aviso. El dibujo en sí es
 // el de `aer_mapa.js` (mismo motor que el modal).
 function pintarFovVuelo(f){
@@ -118,7 +138,12 @@ function pintarFovVuelo(f){
   document.getElementById('rfovmsg').hidden = true;
   MFOV_ON = true;
   MODO = 'fov';      // el cielo (AST) redibuja el FOV cuando termina de cargar
-  requestAnimationFrame(() => { if(MACTUAL === f) dibujarFov(f); });
+  altoFov();
+  requestAnimationFrame(() => {
+    if(MACTUAL !== f) return;
+    dibujarFov(f);
+    requestAnimationFrame(ajustarDatos);
+  });
 }
 
 function arrancar(){
@@ -146,7 +171,11 @@ function arrancar(){
     pintarFovVuelo(f);
     window.addEventListener('resize', () => {
       if(MMAP) MMAP.resize();
-      if(f.fov_az && TRAJ.fov) requestAnimationFrame(() => dibujarFov(f));
+      if(f.fov_az && TRAJ.fov){
+        altoFov();
+        requestAnimationFrame(() => { dibujarFov(f); requestAnimationFrame(ajustarDatos); });
+      }
+      ajustarDatos();
     });
     detalle.then(dt => {
       const d = (dt && dt.flights && (dt.flights[CLAVE] || dt.flights[f.k])) || {};
@@ -158,6 +187,7 @@ function arrancar(){
       if(d.fov != null) f.fov = d.fov;
       pintarFoto(d, f);
       pintarDatos(d, f);
+      requestAnimationFrame(ajustarDatos);
       if(!teniaFov && f.fov_az && TRAJ.fov) pintarFovVuelo(f);
     });
   }).catch(() => mensaje('No se pudieron cargar los datos del vuelo.'));
