@@ -151,6 +151,10 @@ function arrancar(){
     const d = (dt && dt.flights && (dt.flights[CLAVE] || dt.flights[f.k])) || {};
     // La hora del vuelo (epoch) la usa el cielo nocturno del FOV.
     if(d.ts_start && !f.ts_start) f.ts_start = d.ts_start;
+    // El `fov_az` viaja en los trayectos nuevos; si el JSON es viejo, lo trae el
+    // detalle (es el que decide si se dibuja el mapa FOV).
+    if(d.fov_az != null) f.fov_az = d.fov_az;
+    if(d.fov != null) f.fov = d.fov;
     TRAJ = tr;
     MACTUAL = f;
     pintarCabecera(d, f);
