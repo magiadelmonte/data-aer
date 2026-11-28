@@ -121,7 +121,12 @@ function mapLinks(f){
   // Si no entró, el link SAT le pasa `data-nofov` a la modal para que no ofrezca FOV.
   const sat = link('sat', 'SAT').replace('data-modo="sat"',
     'data-modo="sat"' + (f.fov_az ? '' : ' data-nofov="1"'));
-  return sat + (f.fov_az ? link('fov', 'FOV') : '');
+  // Resumen: pagina aparte con el mapa SAT, el FOV, la foto y todos los datos
+  // del vuelo (URL compartible: aer_resumen.html?k=<vuelo>|<inicio>).
+  const res = '<a class="mlink" href="aer_resumen.html?k=' +
+    encodeURIComponent(k) + '" target="_blank" rel="noopener"' +
+    ' title="Resumen del vuelo">RES</a>';
+  return sat + (f.fov_az ? link('fov', 'FOV') : '') + res;
 }
 
 // Modal de fotografía: se abre desde el link FOTO de la lista de vuelos.

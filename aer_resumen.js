@@ -32,7 +32,7 @@ function fila(etiqueta, valor){
 }
 function bloque(titulo, filas){
   return '<section class="rbloque"><h2>' + esc2(titulo) + '</h2>' +
-    '<table class="rdatos"><tbody>' + filas.join('') + '</tbody></table></section>';
+    '<table class="rtabla"><tbody>' + filas.join('') + '</tbody></table></section>';
 }
 function mensaje(texto){
   const m = document.getElementById('rmensaje');
@@ -54,8 +54,6 @@ function pintarCabecera(d, f){
     fa.href = 'https://www.flightaware.com/live/flight/' + encodeURIComponent(id);
     fa.hidden = false;
   }
-  const dia = fechaHora(d.ts_start_iso || f.ts_start_iso);
-  document.getElementById('rfecha').textContent = dia;
 }
 
 function pintarFoto(d, f){
@@ -91,12 +89,14 @@ function pintarDatos(d, f){
     fila('Fin', (d.ts_end_iso || f.ts_end_iso)
       ? fechaHora(d.ts_end_iso || f.ts_end_iso) : 'en vuelo'),
     fila('Paso por la zona', fechaHora(d.ts_paso_iso || f.ts_paso_iso)),
-    fila('Duración', durHMS(d.duration_sec ?? f.duration_sec)),
+    fila('Duración', durHMS(d.duration_sec != null ? d.duration_sec
+      : f.duration_sec)),
     fila('Zona', zona ? 'R' + zona : null),
     fila('Distancia mínima', d.min_dist_km != null
       ? num(d.min_dist_km, 1) + ' km' : null),
     fila('En FOV', fovTxt),
-    fila('Puntos', num(d.n_points ?? (f.path || []).length)),
+    fila('Puntos', num(d.n_points != null ? d.n_points
+      : (f.path || []).length)),
     fila('Altura máxima', d.alt_max_m != null ? num(Math.round(d.alt_max_m)) + ' m' : null),
     fila('Fuente', d.source || null),
     fila('País', pais ? bandera(d.country || f.country) + esc2(pais) : null),
