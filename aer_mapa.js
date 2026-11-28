@@ -232,57 +232,52 @@ function initMapa(cont){
   });
   // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida, 1 = solo recolor, 0 = estilo original.
   // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
-  // Si CARTO no responde (red lenta o caída) a los 7 s se usa un fondo liso: los
-  // anillos, el sector y el trayecto se dibujan igual (antes el mapa quedaba vacío
-  // esperando el estilo para siempre).
-  let aplicado = false;
+  // `setStyle` es asincrono: los anillos, las etiquetas y el trayecto se agregan
+  // recien cuando el estilo NUEVO termino de cargar (`style.load`); si no, la
+  // carga del estilo los borra (mapa sin rutas ni etiquetas). Si CARTO no
+  // responde en 4 s, o falla, se aplica un fondo liso y se dibujan igual.
+  let estiloAplicado = false, listo = false, resolver = null;
+  const cargado = new Promise(res => { resolver = res; });
+  const fin = () => {
+    if(listo) return;
+    listo = true;
+    clearTimeout(reloj);
+    resolver();
+  };
   const fondo = {version: 8, sources: {}, layers: [
     {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]};
-  const aplicar = st => {
-    if(aplicado) return;
-    aplicado = true;
+  const aplicar = (st, corto) => {
+    if(estiloAplicado) return;
+    estiloAplicado = true;
+    m.once('style.load', fin);       // registrar ANTES de setStyle
     m.setStyle(st, {diff: false});
+    if(corto) setTimeout(fin, 700);  // el fondo liso puede no disparar style.load
   };
-  // Espera a que el estilo este cargado. El evento solo no alcanza (si se
-  // registra justo despues de que el estilo termino, no llega nunca): se
-  // consulta cada 100 ms y a los 5 s se sigue igual para no dejar el mapa sin
-  // anillos ni trayecto.
-  const esperarEstilo = () => new Promise(res => {
-    let hecho = false, iv = null;
-    const fin = () => {
-      if(hecho) return;
-      hecho = true;
-      if(iv) clearInterval(iv);
-      res();
-    };
-    if(m.isStyleLoaded()) return fin();
-    m.once('style.load', fin);
-    iv = setInterval(() => { if(m.isStyleLoaded()) fin(); }, 100);
-    setTimeout(fin, 5000);
-  });
-  const conBase = fetch(MAP_STYLE, {cache: 'force-cache'})
+  const reloj = setTimeout(() => {
+    if(!estiloAplicado) aplicar(fondo, true);
+  }, 4000);
+  fetch(MAP_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
     .then(st => {
-      if(aplicado) return;
+      if(estiloAplicado) return;
       const base = JSON.stringify(st);
       let nivel = 2;
       const onErr = e => {
         const msg = (e && e.error && e.error.message) || '';
         if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) && !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
           console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
-          nivel--; m.setStyle(estiloMapa(base, nivel), {diff: false});
+          nivel--;
+          m.once('style.load', fin);
+          m.setStyle(estiloMapa(base, nivel), {diff: false});
         }
       };
       m.on('error', onErr);
-      m.setStyle(estiloMapa(base, nivel), {diff: false});
+      aplicar(estiloMapa(base, nivel), false);
     })
-    .catch(() => {});
-  MMAP_READY = Promise.race([conBase, new Promise(res => setTimeout(res, 4000))])
-    .then(() => {
-      if(!aplicado) aplicar(fondo);
-      return esperarEstilo();
-    })
-    .then(() => {
+    .catch(() => { if(!estiloAplicado) aplicar(fondo, true); });
+  setTimeout(fin, 12000);            // red de seguridad: nunca sin features
+  MMAP_READY = cargado;
+  MMAP_READY.then(() => {
       // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
       const FOV = TRAJ.fov;
       if(FOV){
