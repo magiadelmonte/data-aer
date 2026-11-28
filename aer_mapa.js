@@ -188,6 +188,10 @@ function estiloMapa(base, nivel){
 
 // Rótulo del mapa con el mismo estilo que mapa_sat: el texto va en un span que se
 // puede girar (para que quede paralelo a su anillo o radial en la marca de acimut).
+// Rótulos y marcas del mapa (DOM, no capas): se guardan para poder sacarlos
+// cuando se re-aplica el estilo del basemap y se vuelven a dibujar (si no,
+// quedaban duplicados).
+let MLABELS = [];
 function etiquetaMapa(m, texto, lat, lon, clase, offset, rot){
   const el = document.createElement('div');
   el.className = 'mlab ' + clase;
@@ -195,8 +199,8 @@ function etiquetaMapa(m, texto, lat, lon, clase, offset, rot){
   sp.textContent = texto;
   if(rot) sp.style.transform = 'rotate(' + rot + 'deg)';
   el.appendChild(sp);
-  new maplibregl.Marker({element: el, anchor: 'center', offset: offset || [0, 0]})
-    .setLngLat([lon, lat]).addTo(m);
+  MLABELS.push(new maplibregl.Marker({element: el, anchor: 'center', offset: offset || [0, 0]})
+    .setLngLat([lon, lat]).addTo(m));
 }
 function marcaMapa(m, lat, lon, az){
   const el = document.createElement('div');
@@ -205,8 +209,8 @@ function marcaMapa(m, lat, lon, az){
   sp.className = 'tk';
   sp.style.transform = 'rotate(' + az + 'deg)';
   el.appendChild(sp);
-  new maplibregl.Marker({element: el, anchor: 'center'})
-    .setLngLat([lon, lat]).addTo(m);
+  MLABELS.push(new maplibregl.Marker({element: el, anchor: 'center'})
+    .setLngLat([lon, lat]).addTo(m));
 }
 // Angulo de la tangente en un azimut (para girar el rótulo de km sobre su anillo).
 function tangente(az){
@@ -230,53 +234,13 @@ function initMapa(cont){
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
     fadeDuration: 0,
   });
-  // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida, 1 = solo recolor, 0 = estilo original.
-  // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
-  // `setStyle` es asincrono: los anillos, las etiquetas y el trayecto se agregan
-  // recien cuando el estilo NUEVO termino de cargar (`style.load`); si no, la
-  // carga del estilo los borra (mapa sin rutas ni etiquetas). Si CARTO no
-  // responde en 4 s, o falla, se aplica un fondo liso y se dibujan igual.
-  let estiloAplicado = false, listo = false, resolver = null;
-  const cargado = new Promise(res => { resolver = res; });
-  const fin = () => {
-    if(listo) return;
-    listo = true;
-    clearTimeout(reloj);
-    resolver();
-  };
-  const fondo = {version: 8, sources: {}, layers: [
-    {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]};
-  const aplicar = (st, corto) => {
-    if(estiloAplicado) return;
-    estiloAplicado = true;
-    m.once('style.load', fin);       // registrar ANTES de setStyle
-    m.setStyle(st, {diff: false});
-    if(corto) setTimeout(fin, 700);  // el fondo liso puede no disparar style.load
-  };
-  const reloj = setTimeout(() => {
-    if(!estiloAplicado) aplicar(fondo, true);
-  }, 4000);
-  fetch(MAP_STYLE, {cache: 'force-cache'})
-    .then(r => r.json())
-    .then(st => {
-      if(estiloAplicado) return;
-      const base = JSON.stringify(st);
-      let nivel = 2;
-      const onErr = e => {
-        const msg = (e && e.error && e.error.message) || '';
-        if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) && !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
-          console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
-          nivel--;
-          m.once('style.load', fin);
-          m.setStyle(estiloMapa(base, nivel), {diff: false});
-        }
-      };
-      m.on('error', onErr);
-      aplicar(estiloMapa(base, nivel), false);
-    })
-    .catch(() => { if(!estiloAplicado) aplicar(fondo, true); });
-  setTimeout(fin, 12000);            // red de seguridad: nunca sin features
-  MMAP_READY = cargado.then(() => {
+  // El mapa arranca con un estilo mínimo (fondo liso) y las capas propias
+  // (sector, anillos, cardinales, distancias) se agregan apenas ese estilo está
+  // listo: así los features no dependen de CARTO. Cuando el basemap llega, se
+  // aplica y se vuelven a agregar las capas (setStyle las borra).
+  const agregarCapas = () => {
+      MLABELS.forEach(mk => mk.remove());
+      MLABELS = [];
       // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
       const FOV = TRAJ.fov;
       if(FOV){
@@ -336,8 +300,43 @@ function initMapa(cont){
         const p = destino(lat, lon, az, diagKm);
         etiquetaMapa(m, CARD[az], p[0], p[1], 'mlab_az mlab_diag');
       });
-      encuadrar(MODO);
-    });
+  };
+  const inicial = new Promise(res => {
+    if(m.isStyleLoaded()) return res();
+    m.once('style.load', res);
+  });
+  MMAP_READY = inicial.then(() => agregarCapas());
+  inicial.then(() => {
+    fetch(MAP_STYLE, {cache: 'force-cache'})
+      .then(r => r.json())
+      .then(st => {
+        if(!st) return;
+        const base = JSON.stringify(st);
+        let nivel = 2;
+        const aplicarBase = () => {
+          m.once('style.load', () => {
+            agregarCapas();
+            if(typeof MACTUAL !== 'undefined' && MACTUAL){
+              dibujarTrayecto(MACTUAL);
+              encuadrar('sat');
+            }
+          });
+          m.setStyle(estiloMapa(base, nivel), {diff: false});
+        };
+        const onErr = e => {
+          const msg = (e && e.error && e.error.message) || '';
+          if(nivel > 0 && /layers\[\d+\]|sources\.|Expected|Invalid/i.test(msg) &&
+             !/Failed to fetch|NetworkError|AJAX|404|403/i.test(msg)){
+            console.warn('Estilo rechazado en nivel ' + nivel + ': ' + msg);
+            nivel--;
+            aplicarBase();
+          }
+        };
+        m.on('error', onErr);
+        aplicarBase();
+      })
+      .catch(() => {});
+  });
   return m;
 }
 
