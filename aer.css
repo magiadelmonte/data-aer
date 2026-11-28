@@ -225,62 +225,56 @@ footer a { color: var(--acento); }
   display: block; border-radius: 10px; }
 
 /* ---- Pagina de resumen del vuelo (aer_resumen.html) ---- */
-body.rresumen { display: flex; flex-direction: column; height: 100vh; padding: 0 16px; overflow: hidden; }
-.rhead { position: relative; min-height: 64px; margin: 0 -16px 10px; }
-.rhead h1 { font-size: clamp(14px, 1.6vw, 20px); }
-.rhead .subtitle { margin-top: 2px; }
-.rvolver, #rfa { position: absolute; top: 50%; transform: translateY(-50%);
-  padding: 4px 9px; border: 1px solid var(--borde); border-radius: 9px;
-  font-size: 12px; letter-spacing: .04em; color: var(--acento); text-decoration: none; }
-.rvolver { left: 16px; }
-#rfa { right: 16px; }
-.rvolver:hover, #rfa:hover { background: var(--hover); color: var(--blanco); }
+body.rresumen { display: flex; flex-direction: column; height: 100vh;
+  padding: 0 16px; overflow: hidden; }
+.rhead { flex: 0 0 auto; display: flex; align-items: center;
+  justify-content: center; min-height: 60px; margin: 0 -16px 8px;
+  border-bottom: 1px solid var(--borde); }
+.rhead h1 { margin: 0; font-size: clamp(14px, 1.8vw, 22px); line-height: 1.2;
+  letter-spacing: 2px; font-weight: 700; color: var(--blanco); text-align: center; }
 main.resumen { flex: 1 1 auto; min-height: 0; display: grid;
-  max-width: none; width: 100%; margin: 0;
-  grid-template-columns: 1fr 1fr; grid-template-rows: 25% minmax(0, 1fr);
-  gap: 10px; padding-bottom: 12px; }
+  grid-template-columns: 1fr 1fr; gap: 10px; padding-bottom: 12px;
+  max-width: none; width: 100%; margin: 0; }
 .rmapa, .rfov, .rdatos { position: relative; min-width: 0; min-height: 0;
   background: var(--panel); border: 1px solid var(--borde);
-  border-radius: var(--radio); overflow: hidden; }
-.rmapa { grid-column: 1; grid-row: 1 / 3; }
-.rfov { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; }
-.rdatos { grid-column: 2; grid-row: 2; overflow: auto; padding: 12px;
-  display: grid; grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
-  gap: 12px; align-content: start; }
-/* Mapa SAT: ocupa todo el panel. */
+  border-radius: var(--radio); }
+.rmapa { grid-column: 1; grid-row: 1; overflow: hidden; }
 .rmapa #mmap { position: absolute; inset: 0; width: 100%; height: 100%; }
 .rpie { position: absolute; right: 8px; bottom: 5px; z-index: 2; font-size: 10px;
   color: var(--tenue); background: rgba(var(--c5-rgb, 0, 7, 2), .7);
   padding: 1px 6px; border-radius: 6px; }
 .rpie a { color: inherit; }
-/* Mapa FOV: el lienzo entra entero y centrado; si no cruzó el sector, un aviso. */
-#rfovbox #mfovbox { display: flex; position: relative; flex: 1 1 auto;
-  min-height: 0; align-items: center; justify-content: center; }
+/* Derecha: el FOV arriba (ocupa todo el ancho de la columna, con padding) y
+   debajo la grilla 2x2 (foto | aeronave / vuelo | ruta). */
+.rcol { grid-column: 2; grid-row: 1; display: flex; flex-direction: column;
+  gap: 10px; min-height: 0; }
+.rfov { flex: 0 0 auto; padding: 8px; overflow: hidden; }
+#rfovbox #mfovbox { display: flex; align-items: center; justify-content: center;
+  position: relative; }
 #rfovbox #mfov { display: block; }
 #rfovbox.sinfov #mfovbox { display: none; }
-.rfovmsg { display: flex; flex: 1 1 auto; align-items: center;
+.rfovmsg { display: flex; min-height: 120px; align-items: center;
   justify-content: center; font-size: .875rem; color: var(--tenue); }
 .rfovmsg[hidden] { display: none; }
-/* Foto y datos. */
-.rfoto { border: 1px solid var(--borde); border-radius: 10px; overflow: hidden;
-  background: var(--fondo-canvas); display: flex; align-items: center;
-  justify-content: center; align-self: start; aspect-ratio: 4 / 3; }
-.rfoto img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.rdatos { flex: 1 1 auto; min-height: 0; display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 16px; padding: 10px 12px; overflow: auto; }
+.rfoto { min-width: 0; min-height: 0; border: 1px solid var(--borde);
+  border-radius: 10px; overflow: hidden; background: var(--fondo-canvas);
+  display: flex; align-items: center; justify-content: center; }
+.rfoto img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .rfoto .rplaceholder { font-size: 13px; letter-spacing: .08em;
   text-transform: uppercase; color: var(--tenue); }
-.rbloques { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 18px; align-content: start; }
-.rbloque { min-width: 0; }
+.rbloque { min-width: 0; min-height: 0; overflow: hidden; }
 .rbloque h2 { margin: 0 0 4px; padding-bottom: 2px;
   border-bottom: 1px solid var(--borde); color: var(--blanco);
   font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 table.rtabla { font-size: 12.5px; line-height: 1.35; }
 table.rtabla th, table.rtabla td { padding: 2px 0; border: 0;
   white-space: normal; vertical-align: top; }
-table.rtabla th { width: 44%; padding-right: 8px; color: var(--tenue); font-weight: 400; }
+table.rtabla th { width: 46%; padding-right: 8px; color: var(--tenue); font-weight: 400; }
 table.rtabla td { color: var(--blanco); }
-table.rtabla .reg { font-weight: 600; }
-table.rtabla a.ext { color: var(--acento); }
 #rmensaje { position: fixed; inset: 0; z-index: 50; display: flex;
   align-items: center; justify-content: center; padding: 24px;
   background: rgba(var(--c5-rgb, 0, 7, 2), .85); color: var(--txt);
@@ -288,9 +282,9 @@ table.rtabla a.ext { color: var(--acento); }
 #rmensaje[hidden] { display: none; }
 @media (max-width: 900px) {
   body.rresumen { height: auto; overflow: auto; }
-  main.resumen { height: auto; grid-template-columns: 1fr;
-    grid-template-rows: 55vh 32vh auto; }
-  .rmapa { grid-column: 1; grid-row: 1; }
-  .rfov { grid-column: 1; grid-row: 2; }
-  .rdatos { grid-column: 1; grid-row: 3; grid-template-columns: 1fr; }
+  main.resumen { height: auto; grid-template-columns: 1fr; }
+  .rmapa { min-height: 60vh; }
+  .rcol { grid-column: 1; }
+  .rdatos { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .rfoto { min-height: 200px; }
 }
