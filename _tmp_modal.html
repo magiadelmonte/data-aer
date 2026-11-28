@@ -1,0 +1,37 @@
+<!doctype html><html><body style="margin:0;background:#111;color:#fff;font:14px monospace">
+<pre id="out">midiendo...</pre>
+<iframe id="f" src="/aer/web/_tmp_idx.html" style="width:1200px;height:600px;border:1px solid #555"></iframe>
+<img src="http://127.0.0.1:8099/slow.png" style="width:1px;height:1px">
+<script>
+const log = [];
+let paso = 0;
+function out(){ document.getElementById('out').textContent = log.join('\n'); }
+setInterval(() => {
+  try {
+    const fr = document.getElementById('f').contentWindow;
+    const d = fr.document;
+    const a = d.querySelector('a.mlink[href*="aer_resumen"]');
+    if (paso === 0 && a) {
+      log.push('href RES: ' + a.getAttribute('href'));
+      paso = 1;
+      fr.abrirTrayecto('LVJOI|2026-11-28T13:19:43-03:00', 'sat');
+      setTimeout(() => {
+        log.push('modal on=' + d.getElementById('modal').classList.contains('on') +
+          ' fov=' + d.querySelector('#modal .mbox').classList.contains('fov'));
+        log.push('titulo: ' + d.getElementById('mtit').textContent.slice(0, 60));
+        const cv = d.getElementById('mfov');
+        fr.mostrarTrayecto(fr.MACTUAL, 'fov');
+        setTimeout(() => {
+          log.push('fov mode on=' + d.querySelector('#modal .mbox').classList.contains('fov') +
+            ' canvas=' + cv.style.width + 'x' + cv.style.height +
+            ' box=' + d.getElementById('mfovbox').clientWidth + 'x' +
+            d.getElementById('mfovbox').clientHeight);
+          out();
+        }, 400);
+      }, 600);
+    }
+    out();
+  } catch (e) { log.push('ERR ' + e.message); out(); }
+}, 300);
+</script>
+</body></html>
