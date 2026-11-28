@@ -462,6 +462,10 @@ function dibujarTrayecto(f){
 // azimut/elevación desde el observatorio: cada punto cae donde lo vería la cámara.
 // ============================================================
 let MFOV_ON = false, MFOV_PTS = null, MFOV_TIP = null, MFOV_CV = null;
+// En la modal el ancho del lienzo define el alto de la caja (`.mbox.fov` tiene
+// `height:auto`), asi que se dibuja a todo el ancho. La pagina de resumen le da
+// una caja con alto fijo y pone `FOV_AJUSTAR` para que el lienzo entre entero.
+let FOV_AJUSTAR = false;
 
 function camBasis(F){                    // vectores de la cámara (ENU), igual que SAT
   const ca = F.az0 * Math.PI / 180, ce = F.el0 * Math.PI / 180;
@@ -520,10 +524,9 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  // El lienzo entra entero en la caja conservando la relacion del encuadre: si la
-  // caja es mas baja que ancha (pagina de resumen) manda el alto; en la modal la
-  // caja ya tiene esa relacion y manda el ancho.
-  const W = Math.max(80, Math.min(dispW, dispH * ratio));
+  // En la modal manda el ancho (la caja crece con el lienzo). En el resumen el
+  // lienzo entra entero en la caja: si es mas baja que ancha, manda el alto.
+  const W = FOV_AJUSTAR ? Math.max(80, Math.min(dispW, dispH * ratio)) : dispW;
   const H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;

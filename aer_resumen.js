@@ -177,6 +177,8 @@ function dibujarMapas(f){
   const caja = document.getElementById('rfovbox');
   if(f.fov_az && TRAJ.fov){
     MFOV_ON = true;
+    FOV_AJUSTAR = true;                 // el lienzo entra entero en la caja
+
     requestAnimationFrame(() => { if(MACTUAL === f) dibujarFov(f); });
   } else {
     caja.classList.add('sinfov');
