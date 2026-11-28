@@ -113,19 +113,22 @@ function ajustarDatos(){
   if(!box || !fit) return;
   fit.style.transform = 'none';
   const alto = fit.getBoundingClientRect().height;
-  const disp = box.clientHeight;
+  const cs = getComputedStyle(box);
+  // clientHeight incluye padding: el contenido entra en el area interna.
+  const disp = box.clientHeight - parseFloat(cs.paddingTop || 0) -
+    parseFloat(cs.paddingBottom || 0);
   if(!alto || !disp) return;
   const s = Math.min(1, disp / alto);
   fit.style.transform = s < 0.995 ? 'scale(' + s.toFixed(4) + ')' : 'none';
 }
 
-// Alto del FOV: en pantallas bajas se limita a la mitad de la columna (el
-// lienzo entra a lo ancho que quede) para que los datos siempre entren; en una
-// pantalla alta manda el ancho y el FOV ocupa toda la columna.
+// Alto del FOV: se le reservan ~310 px a los datos (su alto natural con la
+// tipografia normal) y el resto es del FOV. En una pantalla alta el lienzo entra
+// a todo el ancho (no se limita); en una baja se achica lo justo para que los
+// datos se vean enteros, sin scroll.
 function altoFov(){
   const col = document.querySelector('.rcol');
-  const frac = window.innerHeight < 800 ? 0.50 : 0.56;
-  FOV_MAX_ALTO = col ? Math.max(140, Math.round(col.clientHeight * frac)) : null;
+  FOV_MAX_ALTO = col ? Math.max(140, Math.round(col.clientHeight - 310)) : null;
 }
 
 // Mapa FOV: si el vuelo no cruzó el sector, queda el aviso. El dibujo en sí es
