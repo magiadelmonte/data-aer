@@ -119,10 +119,13 @@ function ajustarDatos(){
   fit.style.transform = s < 0.995 ? 'scale(' + s.toFixed(4) + ')' : 'none';
 }
 
-// Alto del FOV: 52 % de la columna como maximo, para dejarle lugar a los datos.
+// Alto del FOV: en pantallas bajas se limita a la mitad de la columna (el
+// lienzo entra a lo ancho que quede) para que los datos siempre entren; en una
+// pantalla alta manda el ancho y el FOV ocupa toda la columna.
 function altoFov(){
   const col = document.querySelector('.rcol');
-  FOV_MAX_ALTO = col ? Math.max(140, Math.round(col.clientHeight * 0.52)) : null;
+  const frac = window.innerHeight < 800 ? 0.50 : 0.56;
+  FOV_MAX_ALTO = col ? Math.max(140, Math.round(col.clientHeight * frac)) : null;
 }
 
 // Mapa FOV: si el vuelo no cruzó el sector, queda el aviso. El dibujo en sí es
