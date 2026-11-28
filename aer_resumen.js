@@ -117,6 +117,7 @@ function pintarFovVuelo(f){
   caja.classList.remove('sinfov');
   document.getElementById('rfovmsg').hidden = true;
   MFOV_ON = true;
+  MODO = 'fov';      // el cielo (AST) redibuja el FOV cuando termina de cargar
   requestAnimationFrame(() => { if(MACTUAL === f) dibujarFov(f); });
 }
 
