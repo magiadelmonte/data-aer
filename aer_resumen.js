@@ -142,7 +142,9 @@ function arrancar(){
   const ymd = dia.replace(/-/g, '');
   Promise.all([
     getJson('trayectos_' + ymd + '.json').catch(() => null),
-    getJson('detalle_' + ymd + '.json').catch(() => null),
+    // El detalle puede faltar (dia viejo): un solo intento y se sigue con los
+    // datos basicos del trayecto.
+    getJson('detalle_' + ymd + '.json', 1).catch(() => null),
   ]).then(([tr, dt]) => {
     if(!tr){ mensaje('No está publicado el día de este vuelo.'); return; }
     const f = (tr.flights || []).find(x => x.k === CLAVE) ||
