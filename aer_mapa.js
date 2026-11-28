@@ -220,11 +220,11 @@ function enFovAz(az, F){
   return a >= F.az_min && a <= F.az_max;
 }
 
-function initMapa(){
+function initMapa(cont){
   const lat = TRAJ.center_lat, lon = TRAJ.center_lon;
   const rings = TRAJ.rings_km || [25, 50, 65];
   const m = new maplibregl.Map({
-    container: 'mmap',
+    container: cont || 'mmap',
     style: {version: 8, sources: {}, layers: [
       {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]},
     center: [lon, lat], zoom: 8, attributionControl: false, interactive: false,
@@ -520,10 +520,11 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  // Ancho del contenedor (el modal ya viene dimensionado por CSS con el alto de la
-  // ventana menos encabezado + franja). No usar dispH aca: el alto de la caja sale
-  // del propio lienzo y se realimenta (quedaba chico).
-  const W = dispW, H = W / ratio;
+  // El lienzo entra entero en la caja conservando la relacion del encuadre: si la
+  // caja es mas baja que ancha (pagina de resumen) manda el alto; en la modal la
+  // caja ya tiene esa relacion y manda el ancho.
+  const W = Math.max(80, Math.min(dispW, dispH * ratio));
+  const H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -922,17 +923,23 @@ function mostrarTrayecto(f, modo, nofov){
 }
 
 function cerrarModal(){
-  document.getElementById('modal').classList.remove('on');
+  const m = document.getElementById('modal');
+  if(!m) return;
+  m.classList.remove('on');
   document.body.style.overflow = '';
 }
 
-document.getElementById('mracc').addEventListener('click', e => {
+// La modal solo existe en `index.html`; la pagina de resumen reusa el mapa y el
+// FOV sin su estructura, asi que los listeners se cuelgan si el nodo esta.
+const MRACC = document.getElementById('mracc');
+if(MRACC) MRACC.addEventListener('click', e => {
   const b = e.target.closest('button[data-modo]');
   if(!b || !MACTUAL) return;
   mostrarTrayecto(MACTUAL, b.dataset.modo, SIN_FOV);
 });
 
-document.getElementById('modal').addEventListener('click', e => {
+const MODAL = document.getElementById('modal');
+if(MODAL) MODAL.addEventListener('click', e => {
   if(e.target.id === 'modal') cerrarModal();
 });
 document.addEventListener('keydown', e => {
