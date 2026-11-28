@@ -232,9 +232,25 @@ function initMapa(cont){
   });
   // Se arma el estilo en 3 niveles: 2 = recolor + etiqueta partida, 1 = solo recolor, 0 = estilo original.
   // Si MapLibre rechaza el estilo (error de validación en alguna capa) se baja un nivel, para que el mapa nunca quede vacío.
-  MMAP_READY = fetch(MAP_STYLE, {cache: 'force-cache'})
+  // Si CARTO no responde (red lenta o caída) a los 7 s se usa un fondo liso: los
+  // anillos, el sector y el trayecto se dibujan igual (antes el mapa quedaba vacío
+  // esperando el estilo para siempre).
+  let aplicado = false;
+  const fondo = {version: 8, sources: {}, layers: [
+    {id: 'fondo', type: 'background', paint: {'background-color': MAP_BG}}]};
+  const aplicar = st => {
+    if(aplicado) return;
+    aplicado = true;
+    m.setStyle(st, {diff: false});
+  };
+  const esperarEstilo = () => new Promise(res => {
+    if(m.isStyleLoaded()) return res();
+    m.once('style.load', () => res());
+  });
+  const conBase = fetch(MAP_STYLE, {cache: 'force-cache'})
     .then(r => r.json())
     .then(st => {
+      if(aplicado) return;
       const base = JSON.stringify(st);
       let nivel = 2;
       const onErr = e => {
@@ -246,11 +262,12 @@ function initMapa(cont){
       };
       m.on('error', onErr);
       m.setStyle(estiloMapa(base, nivel), {diff: false});
-      return new Promise(res => {
-        const check = () => (m.isStyleLoaded() &&
-          (m.getStyle().layers || []).length > 1) ? res() : setTimeout(check, 50);
-        check();
-      });
+    })
+    .catch(() => {});
+  MMAP_READY = Promise.race([conBase, new Promise(res => setTimeout(res, 7000))])
+    .then(() => {
+      if(!aplicado) aplicar(fondo);
+      return esperarEstilo();
     })
     .then(() => {
       // Porción de "pizza": encuadre de la cámara (az_min..az_max) hasta su alcance.
@@ -462,10 +479,6 @@ function dibujarTrayecto(f){
 // azimut/elevación desde el observatorio: cada punto cae donde lo vería la cámara.
 // ============================================================
 let MFOV_ON = false, MFOV_PTS = null, MFOV_TIP = null, MFOV_CV = null;
-// En la modal el ancho del lienzo define el alto de la caja (`.mbox.fov` tiene
-// `height:auto`), asi que se dibuja a todo el ancho. La pagina de resumen le da
-// una caja con alto fijo y pone `FOV_AJUSTAR` para que el lienzo entre entero.
-let FOV_AJUSTAR = false;
 
 function camBasis(F){                    // vectores de la cámara (ENU), igual que SAT
   const ca = F.az0 * Math.PI / 180, ce = F.el0 * Math.PI / 180;
@@ -524,10 +537,9 @@ function dibujarFov(f){
   if(!F || !dispW || !dispH || !f.path || f.path.length < 1) return;
   // Lienzo con la relación exacta del encuadre (tan H / tan V), a todo el ancho.
   const ratio = Math.tan(F.fovH / 2 * Math.PI / 180) / Math.tan(F.fovV / 2 * Math.PI / 180);
-  // En la modal manda el ancho (la caja crece con el lienzo). En el resumen el
-  // lienzo entra entero en la caja: si es mas baja que ancha, manda el alto.
-  const W = FOV_AJUSTAR ? Math.max(80, Math.min(dispW, dispH * ratio)) : dispW;
-  const H = W / ratio;
+  // El lienzo ocupa todo el ancho de la caja (la caja crece con el, tanto en la
+  // modal como en la pagina de resumen). No usar dispH: se realimenta.
+  const W = dispW, H = W / ratio;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
